@@ -77,3 +77,75 @@ model OTP {
   @@index([expiresAt])
   @@map("otps")
 }
+
+// ==========================================
+// ROOM MANAGEMENT MODELS
+// ==========================================
+
+/// RoomType Model - Defines categories of rooms available in the hotel
+/// Each room type has a base configuration (name, description, pricing, total count)
+/// Examples: Deluxe Room, Executive Suite, Presidential Suite
+model RoomType {
+  id            String   @id @default(cuid())
+  
+  /// Display name of the room type (e.g., "Deluxe Room", "Executive Suite")
+  name          String   @unique
+  
+  /// Detailed description of room features, amenities, and size
+  description   String   @db.Text
+  
+  /// Base price per night in the smallest currency unit (e.g., cents for USD)
+  /// Example: 15000 = $150.00 per night
+  pricePerNight Int
+  
+  /// Total physical rooms of this type in the hotel
+  /// Used to validate inventory and prevent overbooking
+  totalRooms    Int
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  /// One-to-many: Each room type has daily inventory records
+  inventory RoomInventory[]
+
+  // Indexes for performance
+  @@index([name])
+  @@index([pricePerNight])
+  @@map("room_types")
+}
+
+/// RoomInventory Model - Tracks daily availability for each room type
+/// Maintains a date-based inventory system to manage bookings
+/// Each record represents available rooms for a specific room type on a specific date
+model RoomInventory {
+  id             String   @id @default(cuid())
+  
+  /// Foreign key to RoomType
+  roomTypeId     String
+  
+  /// Number of rooms available for booking on this date
+  /// Must be <= RoomType.totalRooms
+  /// Decremented when bookings are made, incremented on cancellations
+  availableRooms Int
+  
+  /// The specific date for this inventory record (YYYY-MM-DD)
+  /// Each room type should have one inventory record per date
+  date           DateTime @db.Date
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  /// Many-to-one: Each inventory record belongs to one room type
+  /// onDelete: Cascade - When room type is deleted, all its inventory records are deleted
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance
+  @@index([roomTypeId])
+  @@index([date])
+  
+  // Composite unique constraint: One inventory record per room type per date
+  @@unique([roomTypeId, date])
+  @@map("room_inventory")
+}

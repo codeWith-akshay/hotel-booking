@@ -166,6 +166,102 @@ async function main() {
     console.log(`   🔑 Role: ${superAdminRole.name}`)
 
     // ==========================================
+    // Seed Room Types
+    // ==========================================
+    console.log('\n🏨 Seeding room types...')
+
+    const roomTypes = [
+      {
+        name: 'Deluxe Room',
+        description:
+          'Spacious and elegantly designed room featuring a king-size bed, modern amenities, and a private balcony with city views. Perfect for business travelers and couples. Includes complimentary Wi-Fi, 50" Smart TV, mini-bar, coffee maker, and a luxurious marble bathroom with rain shower. Room size: 350 sq ft.',
+        pricePerNight: 15000, // $150.00 per night (in cents)
+        totalRooms: 20,
+      },
+      {
+        name: 'Executive Suite',
+        description:
+          'Premium suite with separate living and sleeping areas, featuring a king-size bed, work desk, and exclusive lounge access. Ideal for extended stays and executive travelers. Includes all Deluxe Room amenities plus a spacious living room with sofa bed, dining area, kitchenette, two 55" Smart TVs, premium bathroom with bathtub and separate shower, and complimentary breakfast. Room size: 650 sq ft.',
+        pricePerNight: 25000, // $250.00 per night (in cents)
+        totalRooms: 10,
+      },
+      {
+        name: 'Presidential Suite',
+        description:
+          'The pinnacle of luxury accommodation featuring panoramic views, separate master bedroom with king-size bed, opulent living room, private dining area, and personal butler service. Perfect for VIP guests and special occasions. Includes all Executive Suite amenities plus a grand piano, home theater system, private bar, premium jacuzzi, walk-in closet, 24/7 butler service, and complimentary airport transfers. Room size: 1,200 sq ft.',
+        pricePerNight: 50000, // $500.00 per night (in cents)
+        totalRooms: 3,
+      },
+    ]
+
+    const createdRoomTypes = []
+
+    for (const roomTypeData of roomTypes) {
+      const roomType = await prisma.roomType.upsert({
+        where: { name: roomTypeData.name },
+        update: {
+          description: roomTypeData.description,
+          pricePerNight: roomTypeData.pricePerNight,
+          totalRooms: roomTypeData.totalRooms,
+        },
+        create: roomTypeData,
+      })
+      createdRoomTypes.push(roomType)
+      console.log(`✅ Room type created/verified: ${roomType.name}`)
+      console.log(`   💰 Price: $${(roomType.pricePerNight / 100).toFixed(2)} per night`)
+      console.log(`   🛏️  Total rooms: ${roomType.totalRooms}`)
+      console.log(`   🆔 ID: ${roomType.id}`)
+    }
+
+    console.log(`\n✅ Successfully seeded ${createdRoomTypes.length} room types`)
+
+    // ==========================================
+    // Seed Room Inventory (Next 90 days)
+    // ==========================================
+    console.log('\n📅 Seeding room inventory for next 90 days...')
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Start of today
+    const daysToSeed = 90
+    let totalInventoryRecords = 0
+
+    for (const roomType of createdRoomTypes) {
+      let roomTypeInventoryCount = 0
+
+      for (let dayOffset = 0; dayOffset < daysToSeed; dayOffset++) {
+        const inventoryDate = new Date(today)
+        inventoryDate.setDate(today.getDate() + dayOffset)
+
+        await prisma.roomInventory.upsert({
+          where: {
+            roomTypeId_date: {
+              roomTypeId: roomType.id,
+              date: inventoryDate,
+            },
+          },
+          update: {
+            availableRooms: roomType.totalRooms,
+          },
+          create: {
+            roomTypeId: roomType.id,
+            availableRooms: roomType.totalRooms,
+            date: inventoryDate,
+          },
+        })
+
+        roomTypeInventoryCount++
+        totalInventoryRecords++
+      }
+
+      console.log(
+        `✅ ${roomType.name}: ${roomTypeInventoryCount} inventory records created`
+      )
+    }
+
+    console.log(`\n✅ Total inventory records seeded: ${totalInventoryRecords}`)
+    console.log(`   📆 Date range: ${today.toISOString().split('T')[0]} to ${new Date(today.getTime() + (daysToSeed - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`)
+
+    // ==========================================
     // Summary
     // ==========================================
     console.log('\n' + '='.repeat(50))
@@ -175,6 +271,8 @@ async function main() {
     console.log(`   • Roles seeded: ${createdRoles.length}`)
     console.log(`   • Admin users created: 2`)
     console.log(`   • OTP records created: 1`)
+    console.log(`   • Room types seeded: ${createdRoomTypes.length}`)
+    console.log(`   • Inventory records created: ${totalInventoryRecords}`)
     console.log('\n🚀 Your database is ready to use!\n')
   } catch (error) {
     console.error('\n❌ Error during seeding:')

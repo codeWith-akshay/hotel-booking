@@ -14,29 +14,76 @@ import { useRouter } from 'next/navigation'
 // TYPE DEFINITIONS
 // ==========================================
 
+/**
+ * Navigation link interface
+ */
 export interface NavLink {
+  /** Link label */
   label: string
+  /** Link destination */
   href: string
-  roles?: string[] // Which roles can see this link
+  /** Optional icon (emoji or component) */
+  icon?: string | React.ReactNode
+  /** Which roles can see this link */
+  roles?: string[]
+  /** Optional badge text */
+  badge?: string | number
 }
 
-export interface HeaderProps {
-  /** Current user's display name */
-  userName?: string
-  /** Current user's role (MEMBER, ADMIN, SUPERADMIN) */
-  userRole: string
-  /** User's email or phone */
-  userEmail?: string
+/**
+ * User information interface
+ */
+export interface HeaderUser {
+  /** User's display name */
+  name: string
+  /** User's email */
+  email?: string | null
+  /** User's phone */
+  phone?: string
+  /** User's role (MEMBER, ADMIN, SUPERADMIN) */
+  role: string
   /** Avatar image URL (optional) */
   avatarUrl?: string
+  /** User ID */
+  id?: string
+}
+
+/**
+ * Header component props
+ */
+export interface HeaderProps {
+  /** User information object */
+  user: HeaderUser
+  
+  /** Number of unread notifications */
+  notificationsCount?: number
+  
   /** Callback when logout is clicked */
-  onLogout?: () => void
+  onLogout: () => void
+  
   /** Custom navigation links */
   navLinks?: NavLink[]
+  
   /** Show/hide sidebar toggle button */
   showSidebarToggle?: boolean
+  
   /** Callback for sidebar toggle */
   onSidebarToggle?: () => void
+  
+  /** Show/hide notifications bell */
+  showNotifications?: boolean
+  
+  /** Callback when notification bell is clicked */
+  onNotificationClick?: () => void
+  
+  /** Show/hide search bar */
+  showSearch?: boolean
+  
+  /** Search placeholder text */
+  searchPlaceholder?: string
+  
+  /** Callback when search is submitted */
+  onSearch?: (query: string) => void
 }
 
 // ==========================================
@@ -61,39 +108,49 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
  * Responsive header with:
  * - Logo and branding
  * - Role-based navigation links
+ * - Notifications bell with count badge
  * - Profile avatar with dropdown menu
  * - Logout functionality
  * - Mobile hamburger menu
+ * - Optional search bar
  * 
  * @example
  * ```tsx
  * <Header
- *   userName="John Doe"
- *   userRole="MEMBER"
- *   userEmail="john@example.com"
+ *   user={{
+ *     name: "John Doe",
+ *     email: "john@example.com",
+ *     role: "MEMBER"
+ *   }}
+ *   notificationsCount={5}
  *   onLogout={handleLogout}
  * />
  * ```
  */
 export default function Header({
-  userName = 'User',
-  userRole,
-  userEmail,
-  avatarUrl,
+  user,
+  notificationsCount = 0,
   onLogout,
   navLinks = DEFAULT_NAV_LINKS,
   showSidebarToggle = true,
   onSidebarToggle,
+  showNotifications = true,
+  onNotificationClick,
+  showSearch = false,
+  searchPlaceholder = 'Search...',
+  onSearch,
 }: HeaderProps) {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // ==========================================
   // FILTER NAVIGATION BY ROLE
   // ==========================================
   const visibleNavLinks = navLinks.filter(
-    (link) => !link.roles || link.roles.includes(userRole)
+    (link) => !link.roles || link.roles.includes(user.role)
   )
 
   // ==========================================
@@ -101,11 +158,26 @@ export default function Header({
   // ==========================================
   const handleLogout = () => {
     setProfileDropdownOpen(false)
-    if (onLogout) {
-      onLogout()
-    } else {
-      // Default logout behavior
-      router.push('/login')
+    onLogout()
+  }
+
+  // ==========================================
+  // NOTIFICATION HANDLER
+  // ==========================================
+  const handleNotificationClick = () => {
+    setNotificationsOpen(!notificationsOpen)
+    if (onNotificationClick) {
+      onNotificationClick()
+    }
+  }
+
+  // ==========================================
+  // SEARCH HANDLER
+  // ==========================================
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (onSearch && searchQuery.trim()) {
+      onSearch(searchQuery.trim())
     }
   }
 
@@ -135,6 +207,13 @@ export default function Header({
       default:
         return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  // ==========================================
+  // GET DISPLAY EMAIL/PHONE
+  // ==========================================
+  const getDisplayContact = (): string => {
+    return user.email || user.phone || ''
   }
 
   return (
@@ -181,24 +260,130 @@ export default function Header({
           </div>
 
           {/* ==========================================
-              CENTER SECTION: Navigation Links (Desktop)
+              CENTER SECTION: Navigation Links (Desktop) + Search
           ========================================== */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {visibleNavLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="hidden md:flex items-center gap-4 flex-1 justify-center max-w-2xl">
+            {/* Search Bar */}
+            {showSearch && (
+              <form onSubmit={handleSearch} className="flex-1 max-w-md">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    className="w-full px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+              </form>
+            )}
+
+            {/* Navigation Links */}
+            {!showSearch && (
+              <nav className="flex items-center space-x-1">
+                {visibleNavLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="relative px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center gap-2"
+                  >
+                    {link.icon && (
+                      <span className="text-base">
+                        {typeof link.icon === 'string' ? link.icon : link.icon}
+                      </span>
+                    )}
+                    {link.label}
+                    {link.badge && (
+                      <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full">
+                        {link.badge}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </nav>
+            )}
+          </div>
 
           {/* ==========================================
-              RIGHT SECTION: Profile Avatar + Dropdown
+              RIGHT SECTION: Notifications + Profile Avatar
           ========================================== */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Notifications Bell */}
+            {showNotifications && (
+              <div className="relative">
+                <button
+                  onClick={handleNotificationClick}
+                  className="p-2 rounded-md hover:bg-gray-100 transition-colors relative"
+                  aria-label="Notifications"
+                >
+                  <svg
+                    className="w-6 h-6 text-gray-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                    />
+                  </svg>
+                  {notificationsCount > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full min-w-[18px]">
+                      {notificationsCount > 99 ? '99+' : notificationsCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown */}
+                {notificationsOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setNotificationsOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
+                      <div className="px-4 py-2 border-b border-gray-200">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          Notifications
+                          {notificationsCount > 0 && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              ({notificationsCount} unread)
+                            </span>
+                          )}
+                        </h3>
+                      </div>
+                      <div className="py-2">
+                        {notificationsCount === 0 ? (
+                          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                            No new notifications
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-600 px-4 py-2">
+                            Notification content goes here...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -237,15 +422,15 @@ export default function Header({
                 aria-label="User menu"
               >
                 {/* Avatar */}
-                {avatarUrl ? (
+                {user.avatarUrl ? (
                   <img
-                    src={avatarUrl}
-                    alt={userName}
+                    src={user.avatarUrl}
+                    alt={user.name}
                     className="w-10 h-10 rounded-full object-cover border-2 border-gray-300"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold border-2 border-gray-300">
-                    {getUserInitials(userName)}
+                    {getUserInitials(user.name)}
                   </div>
                 )}
 
@@ -281,17 +466,17 @@ export default function Header({
                     {/* User Info Section */}
                     <div className="px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-semibold text-gray-900">
-                        {userName}
+                        {user.name}
                       </p>
-                      {userEmail && (
-                        <p className="text-xs text-gray-500 mt-1">{userEmail}</p>
+                      {getDisplayContact() && (
+                        <p className="text-xs text-gray-500 mt-1">{getDisplayContact()}</p>
                       )}
                       <span
                         className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(
-                          userRole
+                          user.role
                         )}`}
                       >
-                        {userRole}
+                        {user.role}
                       </span>
                     </div>
 

@@ -14,25 +14,69 @@ import { usePathname } from 'next/navigation'
 // TYPE DEFINITIONS
 // ==========================================
 
+/**
+ * Sidebar navigation link interface
+ */
 export interface SidebarLink {
+  /** Link label */
   label: string
+  /** Link destination */
   href: string
+  /** Optional icon (React node or emoji) */
   icon?: React.ReactNode
-  roles?: string[] // Which roles can see this link
-  children?: SidebarLink[] // Submenu items
+  /** Which roles can see this link */
+  roles?: string[]
+  /** Submenu items (hierarchical) */
+  children?: SidebarLink[]
+  /** Optional badge text or count */
+  badge?: string | number
+  /** Badge color variant */
+  badgeVariant?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
+  /** Whether link should open in new tab */
+  external?: boolean
+  /** Custom CSS classes */
+  className?: string
 }
 
+/**
+ * Sidebar component props
+ */
 export interface SidebarProps {
+  /** Sidebar navigation links */
+  links: SidebarLink[]
+  
+  /** Currently active route path */
+  activeRoute: string
+  
   /** Current user's role (MEMBER, ADMIN, SUPERADMIN) */
   userRole: string
-  /** Sidebar navigation links */
-  links?: SidebarLink[]
+  
   /** Controlled open/closed state */
   isOpen?: boolean
+  
   /** Callback when sidebar state changes */
   onToggle?: (open: boolean) => void
+  
   /** Show sidebar (desktop) */
   showOnDesktop?: boolean
+  
+  /** Callback when link is clicked */
+  onLinkClick?: (link: SidebarLink) => void
+  
+  /** Show/hide version footer */
+  showFooter?: boolean
+  
+  /** Custom footer content */
+  footerContent?: React.ReactNode
+  
+  /** Compact mode (icons only by default) */
+  compact?: boolean
+  
+  /** Custom width when open */
+  width?: string
+  
+  /** Custom width when collapsed */
+  collapsedWidth?: string
 }
 
 // ==========================================
@@ -168,13 +212,17 @@ const DEFAULT_SIDEBAR_LINKS: SidebarLink[] = [
  * Collapsible sidebar with:
  * - Role-based navigation filtering
  * - Hierarchical menu with submenus
- * - Active link highlighting
+ * - Active link highlighting based on activeRoute
+ * - Badge support for notifications/counts
  * - Mobile drawer functionality
  * - Desktop collapsible sidebar
+ * - Dynamic rendering based on userRole
  * 
  * @example
  * ```tsx
  * <Sidebar
+ *   links={navigationLinks}
+ *   activeRoute="/dashboard"
  *   userRole="MEMBER"
  *   isOpen={sidebarOpen}
  *   onToggle={setSidebarOpen}
@@ -182,14 +230,24 @@ const DEFAULT_SIDEBAR_LINKS: SidebarLink[] = [
  * ```
  */
 export default function Sidebar({
+  links,
+  activeRoute,
   userRole,
-  links = DEFAULT_SIDEBAR_LINKS,
   isOpen = true,
   onToggle,
   showOnDesktop = true,
+  onLinkClick,
+  showFooter = true,
+  footerContent,
+  compact = false,
+  width = 'w-64',
+  collapsedWidth = 'w-20',
 }: SidebarProps) {
   const pathname = usePathname()
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
+
+  // Use activeRoute prop or fallback to pathname
+  const currentRoute = activeRoute || pathname
 
   // ==========================================
   // FILTER LINKS BY ROLE
@@ -215,9 +273,28 @@ export default function Sidebar({
   // ==========================================
   const isLinkActive = (href: string): boolean => {
     if (href === '/dashboard') {
-      return pathname === '/dashboard'
+      return currentRoute === '/dashboard'
     }
-    return pathname.startsWith(href)
+    return currentRoute.startsWith(href)
+  }
+
+  // ==========================================
+  // GET BADGE COLORS
+  // ==========================================
+  const getBadgeColors = (variant: string = 'primary'): string => {
+    switch (variant) {
+      case 'success':
+        return 'bg-green-500 text-white'
+      case 'warning':
+        return 'bg-yellow-500 text-white'
+      case 'danger':
+        return 'bg-red-500 text-white'
+      case 'info':
+        return 'bg-blue-500 text-white'
+      case 'primary':
+      default:
+        return 'bg-blue-600 text-white'
+    }
   }
 
   // ==========================================
@@ -232,6 +309,21 @@ export default function Sidebar({
   }
 
   // ==========================================
+  // HANDLE LINK CLICK
+  // ==========================================
+  const handleLinkClick = (link: SidebarLink, e: React.MouseEvent) => {
+    // Close mobile sidebar on link click
+    if (window.innerWidth < 1024) {
+      onToggle?.(false)
+    }
+
+    // Custom callback
+    if (onLinkClick) {
+      onLinkClick(link)
+    }
+  }
+
+  // ==========================================
   // RENDER SIDEBAR LINK
   // ==========================================
   const renderLink = (link: SidebarLink, level = 0) => {
@@ -239,63 +331,101 @@ export default function Sidebar({
     const isExpanded = expandedMenus.includes(link.label)
     const isActive = isLinkActive(link.href)
 
+    const linkElement = (
+      <Link
+        href={link.href}
+        target={link.external ? '_blank' : undefined}
+        rel={link.external ? 'noopener noreferrer' : undefined}
+        onClick={(e) => handleLinkClick(link, e)}
+        className={`
+          flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg transition-all
+          ${level > 0 ? 'pl-12' : ''}
+          ${
+            isActive
+              ? 'bg-blue-50 text-blue-700 font-medium'
+              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+          }
+          ${link.className || ''}
+        `}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Icon */}
+          {link.icon && (
+            <span className={`flex-shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
+              {link.icon}
+            </span>
+          )}
+
+          {/* Label (show only when sidebar is open or not compact) */}
+          {(isOpen || !compact) && (
+            <span className="truncate text-sm flex-1">{link.label}</span>
+          )}
+
+          {/* Badge */}
+          {link.badge && (isOpen || !compact) && (
+            <span
+              className={`
+                ml-auto px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0
+                ${getBadgeColors(link.badgeVariant || 'primary')}
+              `}
+            >
+              {link.badge}
+            </span>
+          )}
+
+          {/* External link icon */}
+          {link.external && (isOpen || !compact) && (
+            <svg
+              className="w-3 h-3 flex-shrink-0 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          )}
+        </div>
+
+        {/* Submenu Arrow */}
+        {hasChildren && (isOpen || !compact) && (
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              toggleSubmenu(link.label)
+            }}
+            className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${
+                isExpanded ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        )}
+      </Link>
+    )
+
     return (
       <div key={link.href}>
         {/* Main Link */}
         <div className="relative">
-          <Link
-            href={link.href}
-            className={`
-              flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg transition-all
-              ${level > 0 ? 'pl-12' : ''}
-              ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-              }
-            `}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              {/* Icon */}
-              {link.icon && (
-                <span className={isActive ? 'text-blue-700' : 'text-gray-500'}>
-                  {link.icon}
-                </span>
-              )}
-
-              {/* Label (show only when sidebar is open) */}
-              {isOpen && (
-                <span className="truncate text-sm">{link.label}</span>
-              )}
-            </div>
-
-            {/* Submenu Arrow */}
-            {hasChildren && isOpen && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  toggleSubmenu(link.label)
-                }}
-                className="p-1 hover:bg-gray-200 rounded transition-colors"
-              >
-                <svg
-                  className={`w-4 h-4 transition-transform ${
-                    isExpanded ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-            )}
-          </Link>
+          {linkElement}
 
           {/* Active indicator */}
           {isActive && (
@@ -304,7 +434,7 @@ export default function Sidebar({
         </div>
 
         {/* Submenu (Children) */}
-        {hasChildren && isExpanded && isOpen && (
+        {hasChildren && isExpanded && (isOpen || !compact) && (
           <div className="mt-1 space-y-1">
             {link.children!.map((child) => renderLink(child, level + 1))}
           </div>
@@ -332,7 +462,7 @@ export default function Sidebar({
         className={`
           fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-gray-200 z-50
           transition-all duration-300 ease-in-out
-          ${isOpen ? 'w-64' : 'w-0 lg:w-20'}
+          ${isOpen ? width : `w-0 lg:${collapsedWidth}`}
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${showOnDesktop ? '' : 'hidden'}
         `}
@@ -342,7 +472,7 @@ export default function Sidebar({
               SIDEBAR HEADER
           ========================================== */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            {isOpen && (
+            {(isOpen || !compact) && (
               <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
             )}
 
@@ -351,7 +481,7 @@ export default function Sidebar({
               onClick={() => onToggle?.(!isOpen)}
               className={`
                 p-2 rounded-md hover:bg-gray-100 transition-colors
-                ${isOpen ? '' : 'mx-auto'}
+                ${(isOpen || !compact) ? '' : 'mx-auto'}
               `}
               aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
@@ -384,18 +514,26 @@ export default function Sidebar({
               NAVIGATION LINKS
           ========================================== */}
           <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-            {visibleLinks.map((link) => renderLink(link))}
+            {visibleLinks.length > 0 ? (
+              visibleLinks.map((link) => renderLink(link))
+            ) : (
+              <div className="text-center text-gray-500 text-sm py-8">
+                No links available for {userRole} role
+              </div>
+            )}
           </nav>
 
           {/* ==========================================
               SIDEBAR FOOTER (Optional)
           ========================================== */}
-          {isOpen && (
+          {showFooter && (isOpen || !compact) && (
             <div className="p-4 border-t border-gray-200">
-              <div className="text-xs text-gray-500 text-center">
-                <p>Hotel Booking System</p>
-                <p className="mt-1">v1.0.0</p>
-              </div>
+              {footerContent || (
+                <div className="text-xs text-gray-500 text-center">
+                  <p>Hotel Booking System</p>
+                  <p className="mt-1">v1.0.0</p>
+                </div>
+              )}
             </div>
           )}
         </div>

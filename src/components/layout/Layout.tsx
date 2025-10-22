@@ -7,9 +7,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Header, { type NavLink } from './Header'
+import { usePathname } from 'next/navigation'
+import Header, { type NavLink, type HeaderUser } from './Header'
 import Sidebar, { type SidebarLink } from './Sidebar'
 import Footer from './Footer'
+import { getNavigationForRole, type UserRole } from '@/lib/navigation.utils'
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -19,17 +21,8 @@ export interface LayoutProps {
   /** Main content to render */
   children: React.ReactNode
   
-  /** User information */
-  user: {
-    /** User's display name */
-    name: string
-    /** User's email or phone */
-    email?: string
-    /** User's role (MEMBER, ADMIN, SUPERADMIN) */
-    role: string
-    /** Avatar image URL */
-    avatarUrl?: string
-  }
+  /** User information - passed to Header and Sidebar */
+  user: HeaderUser
   
   /** Layout configuration */
   config?: {
@@ -37,16 +30,28 @@ export interface LayoutProps {
     showSidebar?: boolean
     /** Show/hide footer */
     showFooter?: boolean
-    /** Custom header navigation links */
+    /** Custom header navigation links (overrides role-based defaults) */
     headerNavLinks?: NavLink[]
-    /** Custom sidebar links */
+    /** Custom sidebar links (overrides role-based defaults) */
     sidebarLinks?: SidebarLink[]
+    /** Notifications count for Header bell */
+    notificationsCount?: number
+    /** Show search bar in Header */
+    showSearch?: boolean
+    /** Search placeholder text */
+    searchPlaceholder?: string
     /** Company name for footer */
     companyName?: string
   }
   
-  /** Callback when user logs out */
-  onLogout?: () => void
+  /** Callback when user logs out (required) */
+  onLogout: () => void
+  
+  /** Callback when search is submitted */
+  onSearch?: (query: string) => void
+  
+  /** Callback when notifications bell is clicked */
+  onNotificationClick?: () => void
   
   /** Additional CSS class for main content area */
   contentClassName?: string
@@ -86,6 +91,8 @@ export default function Layout({
   user,
   config = {},
   onLogout,
+  onSearch,
+  onNotificationClick,
   contentClassName = '',
 }: LayoutProps) {
   const {
@@ -93,8 +100,19 @@ export default function Layout({
     showFooter = true,
     headerNavLinks,
     sidebarLinks,
+    notificationsCount = 0,
+    showSearch = false,
+    searchPlaceholder,
     companyName,
   } = config
+
+  // Get current route for active link highlighting
+  const pathname = usePathname()
+
+  // Get role-based navigation if custom links not provided
+  const roleNavigation = getNavigationForRole(user.role as UserRole)
+  const effectiveHeaderLinks = headerNavLinks || roleNavigation.headerLinks
+  const effectiveSidebarLinks = sidebarLinks || roleNavigation.sidebarLinks()
 
   // ==========================================
   // SIDEBAR STATE MANAGEMENT
@@ -150,12 +168,15 @@ export default function Layout({
           HEADER
       ========================================== */}
       <Header
-        userName={user.name}
-        userRole={user.role}
-        {...(user.email && { userEmail: user.email })}
-        {...(user.avatarUrl && { avatarUrl: user.avatarUrl })}
-        {...(onLogout && { onLogout })}
-        {...(headerNavLinks && { navLinks: headerNavLinks })}
+        user={user}
+        navLinks={effectiveHeaderLinks}
+        notificationsCount={notificationsCount}
+        showNotifications={true}
+        showSearch={showSearch}
+        {...(searchPlaceholder && { searchPlaceholder })}
+        onLogout={onLogout}
+        {...(onSearch && { onSearch })}
+        {...(onNotificationClick && { onNotificationClick })}
         showSidebarToggle={showSidebar}
         onSidebarToggle={handleSidebarToggle}
       />
@@ -168,10 +189,12 @@ export default function Layout({
         {showSidebar && (
           <Sidebar
             userRole={user.role}
-            {...(sidebarLinks && { links: sidebarLinks })}
+            links={effectiveSidebarLinks}
+            activeRoute={pathname}
             isOpen={sidebarOpen}
             onToggle={handleSidebarToggle}
             showOnDesktop={true}
+            showFooter={true}
           />
         )}
 
@@ -211,11 +234,11 @@ export function SimpleLayout({
   user,
   onLogout,
   contentClassName = '',
-}: Omit<LayoutProps, 'config'>) {
+}: Omit<LayoutProps, 'config'> & { onLogout: () => void }) {
   return (
     <Layout
       user={user}
-      {...(onLogout && { onLogout })}
+      onLogout={onLogout}
       config={{
         showSidebar: false,
         showFooter: true,
@@ -238,11 +261,11 @@ export function FullWidthLayout({
   user,
   onLogout,
   contentClassName = '',
-}: Omit<LayoutProps, 'config'>) {
+}: Omit<LayoutProps, 'config'> & { onLogout: () => void }) {
   return (
     <Layout
       user={user}
-      {...(onLogout && { onLogout })}
+      onLogout={onLogout}
       config={{
         showSidebar: false,
         showFooter: false,
@@ -263,16 +286,15 @@ export function MinimalLayout({
   children,
   user,
   onLogout,
-}: Omit<LayoutProps, 'config' | 'contentClassName'>) {
+}: Omit<LayoutProps, 'config' | 'contentClassName'> & { onLogout: () => void }) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header
-        userName={user.name}
-        userRole={user.role}
-        {...(user.email && { userEmail: user.email })}
-        {...(user.avatarUrl && { avatarUrl: user.avatarUrl })}
-        {...(onLogout && { onLogout })}
+        user={user}
+        navLinks={[]}
+        onLogout={onLogout}
         showSidebarToggle={false}
+        showNotifications={false}
       />
       <main className="flex-1">
         {children}
