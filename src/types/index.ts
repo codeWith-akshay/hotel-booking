@@ -6,6 +6,19 @@ export type {
   RoleName,
 } from '@prisma/client'
 
+// Re-export middleware types
+export type {
+  RouteConfig,
+  MiddlewareContext,
+  MiddlewareErrorResponse,
+  AuthenticatedRequest,
+  RouteMatcherFn,
+  MiddlewareConfig,
+} from './middleware.types'
+
+// Re-export auth utility types
+export type { UserContext } from '@/lib/middleware/auth.utils'
+
 import type { RoleName } from '@prisma/client'
 
 // Custom types
