@@ -1,0 +1,381 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum RoleName {
+  SUPERADMIN
+  ADMIN
+  MEMBER
+}
+
+enum MembershipType {
+  BASIC
+  PREMIUM
+  VIP
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  SUITE
+  DELUXE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  CASH
+  BANK_TRANSFER
+  DIGITAL_WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum RuleType {
+  BOOKING
+  PRICING
+  AVAILABILITY
+  SYSTEM
+}
+
+enum BulkJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// Models
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userRoles     UserRole[]
+  bookings      Booking[]
+  payments      Payment[]
+  profile       Profile?
+  notifications Notification[]
+  waitlistEntries WaitlistEntry[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        RoleName @unique
+  description String?
+  permissions Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Profile {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  dateOfBirth    DateTime?
+  address        String?
+  city           String?
+  country        String?
+  postalCode     String?
+  membershipType MembershipType @default(BASIC)
+  preferences    Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  type        RoomType
+  capacity    Int
+  pricePerNight Decimal @db.Decimal(10, 2)
+  amenities   Json?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  inventory RoomInventory[]
+  bookings  Booking[]
+
+  @@map("rooms")
+}
+
+model RoomInventory {
+  id        String   @id @default(cuid())
+  roomId    String
+  date      DateTime @db.Date
+  available Boolean  @default(true)
+  price     Decimal? @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, date])
+  @@map("room_inventory")
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  userId      String
+  roomId      String
+  checkInDate DateTime      @db.Date
+  checkOutDate DateTime     @db.Date
+  guests      Int
+  totalAmount Decimal       @db.Decimal(10, 2)
+  status      BookingStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room     Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  payments Payment[]
+  invoices Invoice[]
+
+  @@map("bookings")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String
+  userId        String
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @unique
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  bookingId   String
+  invoiceNumber String @unique
+  amount      Decimal  @db.Decimal(10, 2)
+  tax         Decimal? @db.Decimal(10, 2)
+  totalAmount Decimal  @db.Decimal(10, 2)
+  issuedAt    DateTime @default(now())
+  dueDate     DateTime
+  paidAt      DateTime?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  purpose   String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("otp")
+}
+
+model Rule {
+  id          String   @id @default(cuid())
+  name        String
+  type        RuleType
+  condition   Json
+  action      Json
+  isActive    Boolean  @default(true)
+  priority    Int      @default(0)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("rules")
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  channel   NotificationChannel
+  status    NotificationStatus @default(PENDING)
+  metadata  Json?
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model WaitlistEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  roomType    RoomType
+  checkInDate DateTime @db.Date
+  checkOutDate DateTime @db.Date
+  guests      Int
+  priority    Int      @default(0)
+  notified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("waitlist")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  oldValues Json?
+  newValues Json?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model BulkMessageJob {
+  id          String        @id @default(cuid())
+  name        String
+  recipients  Json
+  template    String
+  channel     NotificationChannel
+  status      BulkJobStatus @default(PENDING)
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  totalCount  Int?
+  successCount Int          @default(0)
+  failureCount Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  logs BulkMessageLog[]
+
+  @@map("bulk_message_jobs")
+}
+
+model BulkMessageLog {
+  id        String             @id @default(cuid())
+  jobId     String
+  recipient String
+  status    NotificationStatus
+  message   String?
+  sentAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  // Relations
+  job BulkMessageJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("bulk_message_logs")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
