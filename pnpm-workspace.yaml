@@ -1,0 +1,26 @@
+# ==========================================
+# PNPM WORKSPACE CONFIGURATION
+# ==========================================
+# 
+# This file defines the workspace structure for pnpm.
+# Currently set up as a single-package project.
+# If you add more packages later, list them here.
+#
+# Example for monorepo:
+# packages:
+#   - 'packages/*'
+#   - 'apps/*'
+#   - 'services/*'
+# ==========================================
+
+packages:
+  # Include the root package (current project)
+  - '.'
+
+# ==========================================
+# SHARED DEPENDENCY CONFIGURATION
+# ==========================================
+# Define shared dependencies that all packages should use
+# catalog:
+#   react: ^19.2.0
+#   typescript: ^5.0.0
