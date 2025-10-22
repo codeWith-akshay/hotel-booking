@@ -171,7 +171,7 @@ export default function Header({
 
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-linear-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">H</span>
               </div>
               <span className="hidden sm:block text-xl font-bold text-gray-900">
@@ -244,7 +244,7 @@ export default function Header({
                     className="w-10 h-10 rounded-full object-cover border-2 border-gray-300"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold border-2 border-gray-300">
+                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold border-2 border-gray-300">
                     {getUserInitials(userName)}
                   </div>
                 )}

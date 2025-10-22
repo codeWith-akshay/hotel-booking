@@ -231,17 +231,14 @@ export function formatUserDisplayName(user: Partial<User>): string {
   }
   
   if (user.email) {
-    const trimmedEmail = user.email.trim()
-    if (trimmedEmail) {
-      return trimmedEmail.split('@')[0]
+    const emailParts = user.email.split('@')
+    if (emailParts[0]) {
+      return emailParts[0]
     }
   }
   
   if (user.phone) {
-    const trimmedPhone = user.phone.trim()
-    if (trimmedPhone) {
-      return `User ${trimmedPhone.slice(-4)}`
-    }
+    return `User ${user.phone.slice(-4)}`
   }
   
   return 'User'
