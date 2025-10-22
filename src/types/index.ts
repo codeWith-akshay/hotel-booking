@@ -2,51 +2,26 @@
 export type {
   User,
   Role,
-  UserRole,
-  Profile,
-  Room,
-  RoomInventory,
-  Booking,
-  Payment,
-  Invoice,
   OTP,
-  Rule,
-  Notification,
-  WaitlistEntry,
-  AuditLog,
-  BulkMessageJob,
-  BulkMessageLog,
-  SystemSetting,
+  RoleName,
 } from '@prisma/client'
 
-export type {
-  RoleName,
-  MembershipType,
-  RoomType,
-  BookingStatus,
-  PaymentMethod,
-  PaymentStatus,
-  NotificationChannel,
-  NotificationStatus,
-  RuleType,
-  BulkJobStatus,
-} from '@prisma/client'
+import type { RoleName } from '@prisma/client'
 
 // Custom types
-export interface UserWithRoles {
+export interface UserWithRole {
   id: string
-  email: string
-  firstName: string
-  lastName: string
-  phone?: string | null
-  isActive: boolean
+  phone: string
+  name: string
+  email: string | null
+  roleId: string
+  role: {
+    id: string
+    name: RoleName
+    permissions: any
+  }
   createdAt: Date
   updatedAt: Date
-  userRoles: Array<{
-    role: {
-      name: string
-    }
-  }>
 }
 
 export interface BookingWithDetails {
