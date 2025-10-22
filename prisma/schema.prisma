@@ -24,13 +24,14 @@ enum RoleName {
 
 // User Model - Core authentication and user data
 model User {
-  id        String   @id @default(cuid())
-  phone     String   @unique
-  name      String
-  email     String?  @unique
-  roleId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  phone             String   @unique
+  name              String
+  email             String?  @unique
+  roleId            String
+  ircaMembershipId  String?  @unique
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
@@ -40,6 +41,7 @@ model User {
   @@index([phone])
   @@index([email])
   @@index([roleId])
+  @@index([ircaMembershipId])
   @@map("users")
 }
 
