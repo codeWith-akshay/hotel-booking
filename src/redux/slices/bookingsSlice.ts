@@ -706,6 +706,3 @@ export const {
 
 // Export reducer
 export default bookingsSlice.reducer
-
-// Export state type
-export type { BookingsState } from './bookingsSlice'

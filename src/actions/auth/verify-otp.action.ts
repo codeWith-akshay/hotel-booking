@@ -25,6 +25,7 @@ export interface UserWithRole {
   phone: string
   name: string
   email: string | null
+  roleId: string
   role: {
     id: string
     name: string
@@ -179,6 +180,14 @@ export async function verifyOTPAction(
     // ==========================================
     // STEP 7: Prepare JWT Payload
     // ==========================================
+    console.log(`🔍 User data before JWT creation:`, {
+      id: user.id,
+      phone: user.phone,
+      name: user.name,
+      roleId: user.roleId,
+      roleName: user.role.name,
+    })
+    
     const jwtPayload: JWTPayload = {
       userId: user.id,
       phone: user.phone,
@@ -187,6 +196,8 @@ export async function verifyOTPAction(
       role: user.role.name,
       roleId: user.roleId,
     }
+
+    console.log(`🎫 JWT Payload:`, jwtPayload)
 
     // ==========================================
     // STEP 8: Generate Tokens

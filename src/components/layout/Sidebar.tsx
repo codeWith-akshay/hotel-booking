@@ -351,7 +351,7 @@ export default function Sidebar({
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Icon */}
           {link.icon && (
-            <span className={`flex-shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
+            <span className={`shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
               {link.icon}
             </span>
           )}
@@ -365,7 +365,7 @@ export default function Sidebar({
           {link.badge && (isOpen || !compact) && (
             <span
               className={`
-                ml-auto px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0
+                ml-auto px-2 py-0.5 text-xs font-semibold rounded-full shrink-0
                 ${getBadgeColors(link.badgeVariant || 'primary')}
               `}
             >
@@ -376,7 +376,7 @@ export default function Sidebar({
           {/* External link icon */}
           {link.external && (isOpen || !compact) && (
             <svg
-              className="w-3 h-3 flex-shrink-0 text-gray-400"
+              className="w-3 h-3 shrink-0 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -399,7 +399,7 @@ export default function Sidebar({
               e.stopPropagation()
               toggleSubmenu(link.label)
             }}
-            className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+            className="p-1 hover:bg-gray-200 rounded transition-colors shrink-0"
           >
             <svg
               className={`w-4 h-4 transition-transform ${

@@ -24,6 +24,7 @@ export default function VerifyOTPPage() {
     setTokens,
     clearPendingPhone,
   } = useAuthStore()
+  const authStore = useAuthStore()
 
   // OTP input state
   const [otp, setOTP] = useState(['', '', '', '', '', ''])
@@ -154,26 +155,93 @@ export default function VerifyOTPPage() {
       const data = await response.json()
 
       if (data.success) {
-        // Success! Update auth store
+        // Success! Update auth store with token first
+        setSuccess('Login successful! Fetching user profile...')
+        
+        // Store token first
+        setTokens(data.data.token)
+        
+        // Variable to store the final user data for redirection
+        let finalUser = null
+        
+        // Now fetch the complete user profile with role information
+        try {
+          const profileResponse = await fetch('/api/user/profile', {
+            headers: {
+              'Authorization': `Bearer ${data.data.token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json()
+            
+            if (profileData.success && profileData.data) {
+              // Set user with complete profile data including correct role
+              finalUser = {
+                id: profileData.data.id,
+                phone: profileData.data.phone,
+                name: profileData.data.name || 'User',
+                email: profileData.data.email,
+                role: profileData.data.role?.name || 'MEMBER',
+                roleId: profileData.data.roleId,
+              }
+              
+              setUser(finalUser)
+              console.log('✅ User profile loaded:', finalUser)
+            } else {
+              // Fallback to basic user data from verification response
+              finalUser = {
+                id: data.data.userId,
+                phone: data.data.phone,
+                name: 'User',
+                email: null,
+                role: 'MEMBER', // Fallback role
+                roleId: '',
+              }
+              setUser(finalUser)
+            }
+          } else {
+            // Profile fetch failed, use basic data
+            finalUser = {
+              id: data.data.userId,
+              phone: data.data.phone,
+              name: 'User',
+              email: null,
+              role: 'MEMBER', // Fallback role
+              roleId: '',
+            }
+            setUser(finalUser)
+          }
+        } catch (profileError) {
+          console.error('Error fetching user profile:', profileError)
+          // Use basic user data as fallback
+          finalUser = {
+            id: data.data.userId,
+            phone: data.data.phone,
+            name: 'User',
+            email: null,
+            role: 'MEMBER', // Fallback role
+            roleId: '',
+          }
+          setUser(finalUser)
+        }
+        
+        clearPendingPhone()
         setSuccess('Login successful! Redirecting...')
 
-        // Store user and token in Zustand
-        const user = {
-          id: data.data.userId,
-          phone: data.data.phone,
-          name: 'User', // Will be fetched from profile API later
-          email: null,
-          role: 'MEMBER',
-          roleId: '',
-        }
-
-        setUser(user)
-        setTokens(data.data.token)
-        clearPendingPhone()
-
-        // Redirect to dashboard
+        // Redirect to appropriate dashboard based on role
         setTimeout(() => {
-          router.push('/dashboard')
+          // Use the finalUser variable that has the correct role
+          console.log('🚀 Redirecting user with role:', finalUser?.role)
+          
+          if (finalUser?.role === 'SUPERADMIN') {
+            router.push('/superadmin/dashboard')
+          } else if (finalUser?.role === 'ADMIN') {
+            router.push('/admin/dashboard')
+          } else {
+            router.push('/dashboard')
+          }
         }, 1500)
       } else {
         // Handle error

@@ -217,6 +217,29 @@ export interface DailyAvailability {
   occupancyRate: number
 }
 
+/**
+ * Availability status based on available rooms
+ */
+export type AvailabilityStatus = 'green' | 'yellow' | 'red'
+
+/**
+ * Room availability with status for a specific date
+ * Used by getRoomAvailability server action
+ */
+export interface RoomAvailabilityByDate {
+  /** Date in ISO format (YYYY-MM-DD) */
+  date: string
+  /** Number of available rooms on this date */
+  availableRooms: number
+  /** Color-coded status: green (>5), yellow (1-5), red (0) */
+  status: AvailabilityStatus
+}
+
+/**
+ * Response for room availability by date range
+ */
+export type RoomAvailabilityResponse = ServerActionResponse<RoomAvailabilityByDate[]>
+
 // ==========================================
 // UTILITY TYPES
 // ==========================================

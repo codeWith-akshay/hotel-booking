@@ -210,6 +210,21 @@ export const checkAvailabilitySchema = z.object({
   'Check-out date must be after check-in date'
 )
 
+/**
+ * Schema for getting room availability by date range
+ */
+export const getRoomAvailabilitySchema = z.object({
+  roomTypeId: z.string().cuid('Invalid room type ID'),
+  from: z.date(),
+  to: z.date(),
+}).refine(
+  (data) => data.to >= data.from,
+  {
+    message: 'End date must be on or after start date',
+    path: ['to'],
+  }
+)
+
 // ==========================================
 // TYPE EXPORTS
 // ==========================================
@@ -228,3 +243,4 @@ export type UpdateInventoryByDateInput = z.infer<typeof updateInventoryByDateSch
 export type DeleteInventoryInput = z.infer<typeof deleteInventorySchema>
 export type GetInventoryByRoomTypeInput = z.infer<typeof getInventoryByRoomTypeSchema>
 export type CheckAvailabilityInput = z.infer<typeof checkAvailabilitySchema>
+export type GetRoomAvailabilityInput = z.infer<typeof getRoomAvailabilitySchema>

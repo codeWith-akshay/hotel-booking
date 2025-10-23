@@ -40,6 +40,8 @@ import {
   selectPaginationInfo,
   selectBookingById,
   selectStatusCounts,
+  selectStats,
+  selectStatsLoading,
 } from '@/redux/selectors/bookingsSelectors'
 import { BookingStatus, PaymentStatus } from '@/types/booking.types'
 
@@ -553,34 +555,37 @@ export function Example9_Statistics() {
   }, [dispatch])
 
   if (loading) return <div>Loading statistics...</div>
-  if (!stats) return <div>No statistics available</div>
 
   return (
     <div className="rounded-lg border p-4">
       <h3 className="mb-2 font-bold">Example 9: Statistics</h3>
       
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded bg-blue-100 p-2 text-center">
-          <p className="text-2xl font-bold">{stats.total}</p>
-          <p className="text-sm">Total</p>
+      {!stats ? (
+        <div>No statistics available</div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded bg-blue-100 p-2 text-center">
+            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-sm">Total</p>
+          </div>
+          <div className="rounded bg-green-100 p-2 text-center">
+            <p className="text-2xl font-bold">{stats.confirmed}</p>
+            <p className="text-sm">Confirmed</p>
+          </div>
+          <div className="rounded bg-yellow-100 p-2 text-center">
+            <p className="text-2xl font-bold">{stats.pending}</p>
+            <p className="text-sm">Pending</p>
+          </div>
+          <div className="col-span-3 rounded bg-purple-100 p-2">
+            <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
+            <p className="text-sm">Total Revenue</p>
+          </div>
+          <div className="col-span-3 rounded bg-orange-100 p-2">
+            <p className="text-2xl font-bold">{stats.occupancyRate}%</p>
+            <p className="text-sm">Occupancy Rate</p>
+          </div>
         </div>
-        <div className="rounded bg-green-100 p-2 text-center">
-          <p className="text-2xl font-bold">{stats.confirmed}</p>
-          <p className="text-sm">Confirmed</p>
-        </div>
-        <div className="rounded bg-yellow-100 p-2 text-center">
-          <p className="text-2xl font-bold">{stats.pending}</p>
-          <p className="text-sm">Pending</p>
-        </div>
-        <div className="col-span-3 rounded bg-purple-100 p-2">
-          <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
-          <p className="text-sm">Total Revenue</p>
-        </div>
-        <div className="col-span-3 rounded bg-orange-100 p-2">
-          <p className="text-2xl font-bold">{stats.occupancyRate}%</p>
-          <p className="text-sm">Occupancy Rate</p>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -269,7 +269,7 @@ export const Alert: React.FC<AlertProps> = ({
       role="alert"
     >
       {/* Icon */}
-      <div className="flex-shrink-0">{icons[type]}</div>
+      <div className="shrink-0">{icons[type]}</div>
 
       {/* Message */}
       <p className="flex-1 text-sm font-medium">{message}</p>
@@ -278,7 +278,7 @@ export const Alert: React.FC<AlertProps> = ({
       {onClose && (
         <button
           onClick={onClose}
-          className="flex-shrink-0 hover:opacity-70 transition-opacity"
+          className="shrink-0 hover:opacity-70 transition-opacity"
           aria-label="Close alert"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

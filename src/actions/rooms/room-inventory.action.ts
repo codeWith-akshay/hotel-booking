@@ -15,6 +15,7 @@ import {
   deleteInventorySchema,
   getInventoryByRoomTypeSchema,
   checkAvailabilitySchema,
+  getRoomAvailabilitySchema,
 } from '@/lib/validation/room.validation'
 import {
   canManageInventory,
@@ -26,6 +27,9 @@ import type {
   BulkInventoryResponse,
   AvailabilityResponse,
   ServerActionResponse,
+  RoomAvailabilityResponse,
+  RoomAvailabilityByDate,
+  AvailabilityStatus,
 } from '@/types/room.types'
 import { Prisma } from '@prisma/client'
 
@@ -70,7 +74,7 @@ export async function createInventory(
       return {
         success: false,
         message: 'Validation failed',
-        error: validationResult.error.errors[0]?.message || 'Invalid input',
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
       }
     }
 
@@ -201,7 +205,7 @@ export async function createBulkInventory(
       return {
         success: false,
         message: 'Validation failed',
-        error: validationResult.error.errors[0]?.message || 'Invalid input',
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
       }
     }
 
@@ -337,7 +341,7 @@ export async function getInventoryByRoomType(
       return {
         success: false,
         message: 'Validation failed',
-        error: validationResult.error.errors[0]?.message || 'Invalid input',
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
       }
     }
 
@@ -421,7 +425,7 @@ export async function updateInventory(
       return {
         success: false,
         message: 'Validation failed',
-        error: validationResult.error.errors[0]?.message || 'Invalid input',
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
       }
     }
 
@@ -530,7 +534,7 @@ export async function updateInventoryByDate(
       return {
         success: false,
         message: 'Validation failed',
-        error: validationResult.error.errors[0]?.message || 'Invalid input',
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
       }
     }
 
@@ -639,7 +643,7 @@ export async function deleteInventory(
       return {
         success: false,
         message: 'Validation failed',
-        error: validationResult.error.errors[0]?.message || 'Invalid input',
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
       }
     }
 
@@ -727,7 +731,7 @@ export async function checkAvailability(
       return {
         success: false,
         message: 'Validation failed',
-        error: validationResult.error.errors[0]?.message || 'Invalid input',
+        error: validationResult.error.issues[0]?.message || 'Invalid input',
       }
     }
 
@@ -757,7 +761,7 @@ export async function checkAvailability(
     const unavailableDates: Date[] = []
     let minAvailability = Infinity
 
-    inventory.forEach((inv) => {
+    inventory.forEach((inv: { availableRooms: number; date: Date }) => {
       if (inv.availableRooms < requiredRooms) {
         unavailableDates.push(inv.date)
       }
@@ -788,6 +792,163 @@ export async function checkAvailability(
       success: false,
       message: 'Failed to check availability',
       error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+// ==========================================
+// GET ROOM AVAILABILITY BY DATE RANGE
+// ==========================================
+
+/**
+ * Fetch room availability per date from Prisma RoomInventory
+ * 
+ * Returns an array of availability data with color-coded status for each date:
+ * - Green: > 5 available rooms
+ * - Yellow: 1-5 available rooms
+ * - Red: 0 available rooms
+ * 
+ * @param roomTypeId - The room type ID (CUID format)
+ * @param from - Start date of the range (inclusive)
+ * @param to - End date of the range (inclusive)
+ * @returns Server action response with array of availability by date
+ * 
+ * @example
+ * ```typescript
+ * const result = await getRoomAvailability(
+ *   'clx123456',
+ *   new Date('2025-10-25'),
+ *   new Date('2025-10-30')
+ * )
+ * 
+ * if (result.success && result.data) {
+ *   result.data.forEach(({ date, availableRooms, status }) => {
+ *     console.log(`${date}: ${availableRooms} rooms (${status})`)
+ *   })
+ * }
+ * ```
+ */
+export async function getRoomAvailability(
+  roomTypeId: string,
+  from: Date,
+  to: Date
+): Promise<RoomAvailabilityResponse> {
+  try {
+    // ==========================================
+    // INPUT VALIDATION
+    // ==========================================
+    const validation = getRoomAvailabilitySchema.safeParse({
+      roomTypeId,
+      from,
+      to,
+    })
+
+    if (!validation.success) {
+      const errors = validation.error.issues.map((err) => err.message).join(', ')
+      return {
+        success: false,
+        message: `Validation failed: ${errors}`,
+        error: errors,
+      }
+    }
+
+    const { roomTypeId: validatedRoomTypeId, from: validatedFrom, to: validatedTo } = validation.data
+
+    // ==========================================
+    // VERIFY ROOM TYPE EXISTS
+    // ==========================================
+    const roomType = await prisma.roomType.findUnique({
+      where: { id: validatedRoomTypeId },
+      select: { id: true, name: true },
+    })
+
+    if (!roomType) {
+      return {
+        success: false,
+        message: `Room type not found with ID: ${validatedRoomTypeId}`,
+        error: 'Room type does not exist',
+      }
+    }
+
+    // ==========================================
+    // NORMALIZE DATES (remove time component)
+    // ==========================================
+    const normalizedFrom = new Date(validatedFrom)
+    normalizedFrom.setHours(0, 0, 0, 0)
+
+    const normalizedTo = new Date(validatedTo)
+    normalizedTo.setHours(0, 0, 0, 0)
+
+    // ==========================================
+    // FETCH INVENTORY DATA
+    // ==========================================
+    const inventory = await prisma.roomInventory.findMany({
+      where: {
+        roomTypeId: validatedRoomTypeId,
+        date: {
+          gte: normalizedFrom,
+          lte: normalizedTo,
+        },
+      },
+      select: {
+        date: true,
+        availableRooms: true,
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    })
+
+    // ==========================================
+    // COMPUTE AVAILABILITY STATUS
+    // ==========================================
+    
+    /**
+     * Determines the availability status based on available rooms
+     * @param availableRooms - Number of available rooms
+     * @returns Status color code
+     */
+    const getAvailabilityStatus = (availableRooms: number): AvailabilityStatus => {
+      if (availableRooms > 5) return 'green'
+      if (availableRooms >= 1) return 'yellow'
+      return 'red'
+    }
+
+    // Transform inventory data to structured JSON response
+    const availabilityData: RoomAvailabilityByDate[] = inventory.map((item) => ({
+      date: item.date.toISOString().split('T')[0] || '', // Format as YYYY-MM-DD
+      availableRooms: item.availableRooms,
+      status: getAvailabilityStatus(item.availableRooms),
+    }))
+
+    // ==========================================
+    // RETURN RESPONSE
+    // ==========================================
+    return {
+      success: true,
+      message: `Retrieved availability for ${availabilityData.length} date(s) for room type: ${roomType.name}`,
+      data: availabilityData,
+    }
+  } catch (error) {
+    // ==========================================
+    // ERROR HANDLING
+    // ==========================================
+    console.error('Error fetching room availability:', error)
+    
+    // Handle Prisma-specific errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return {
+        success: false,
+        message: 'Database error while fetching availability',
+        error: `Prisma error: ${error.code} - ${error.message}`,
+      }
+    }
+
+    // Handle generic errors
+    return {
+      success: false,
+      message: 'Failed to fetch room availability',
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
     }
   }
 }
