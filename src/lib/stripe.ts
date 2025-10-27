@@ -10,15 +10,19 @@ import Stripe from 'stripe'
 // ENVIRONMENT VARIABLES VALIDATION
 // ==========================================
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error(
-    'STRIPE_SECRET_KEY is not defined in environment variables. ' +
-    'Add it to .env.local for development.'
+// Make Stripe optional for build - only validate at runtime
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || ''
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
+
+if (!STRIPE_SECRET_KEY && process.env.NODE_ENV === 'production') {
+  console.warn(
+    'WARNING: STRIPE_SECRET_KEY is not defined. ' +
+    'Payment features will not work until this is configured.'
   )
 }
 
 // Optional but recommended for production
-if (!process.env.STRIPE_WEBHOOK_SECRET && process.env.NODE_ENV === 'production') {
+if (!STRIPE_WEBHOOK_SECRET && process.env.NODE_ENV === 'production') {
   console.warn(
     'WARNING: STRIPE_WEBHOOK_SECRET is not defined. ' +
     'Webhook signature verification will fail in production.'
@@ -33,11 +37,14 @@ if (!process.env.STRIPE_WEBHOOK_SECRET && process.env.NODE_ENV === 'production')
  * Stripe client instance
  * Initialized with secret key from environment
  * Uses latest API version
+ * Returns null if STRIPE_SECRET_KEY is not configured
  */
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover', // Use latest stable version
-  typescript: true,
-})
+export const stripe = STRIPE_SECRET_KEY 
+  ? new Stripe(STRIPE_SECRET_KEY, {
+      apiVersion: '2025-09-30.clover', // Use latest stable version
+      typescript: true,
+    })
+  : null
 
 // ==========================================
 // STRIPE CONFIGURATION CONSTANTS
@@ -46,7 +53,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 /**
  * Webhook secret for signature verification
  */
-export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || ''
+export const STRIPE_WEBHOOK_SECRET_KEY = STRIPE_WEBHOOK_SECRET || ''
 
 /**
  * Publishable key for frontend (public, safe to expose)
@@ -71,6 +78,19 @@ export const DEFAULT_CANCEL_URL = `${BASE_URL}/booking`
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================
+
+/**
+ * Ensures Stripe is configured
+ * Throws error if stripe client is not initialized
+ */
+function ensureStripeConfigured(): Stripe {
+  if (!stripe) {
+    throw new Error(
+      'Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.'
+    )
+  }
+  return stripe
+}
 
 /**
  * Create a Stripe Checkout Session
@@ -111,6 +131,7 @@ export async function createCheckoutSession(params: {
   } = params
 
   try {
+    const stripeClient = ensureStripeConfigured()
     const sessionParams: any = {
       mode: 'payment',
       payment_method_types: ['card'],
@@ -141,7 +162,7 @@ export async function createCheckoutSession(params: {
       sessionParams.customer_email = customerEmail
     }
 
-    const session = await stripe.checkout.sessions.create(
+    const session = await stripeClient.checkout.sessions.create(
       sessionParams,
       idempotencyKey ? { idempotencyKey } : undefined
     )
@@ -180,6 +201,7 @@ export async function createPaymentIntent(params: {
   const { amount, currency, customerId, metadata, idempotencyKey } = params
 
   try {
+    const stripeClient = ensureStripeConfigured()
     const intentParams: any = {
       amount,
       currency: currency.toLowerCase(),
@@ -194,7 +216,7 @@ export async function createPaymentIntent(params: {
       intentParams.customer = customerId
     }
 
-    const paymentIntent = await stripe.paymentIntents.create(
+    const paymentIntent = await stripeClient.paymentIntents.create(
       intentParams,
       idempotencyKey ? { idempotencyKey } : undefined
     )
@@ -215,7 +237,8 @@ export async function createPaymentIntent(params: {
  */
 export async function retrieveCheckoutSession(sessionId: string) {
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    const stripeClient = ensureStripeConfigured()
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId, {
       expand: ['payment_intent', 'customer'],
     })
 
@@ -234,7 +257,8 @@ export async function retrieveCheckoutSession(sessionId: string) {
  */
 export async function retrievePaymentIntent(paymentIntentId: string) {
   try {
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+    const stripeClient = ensureStripeConfigured()
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId)
     return paymentIntent
   } catch (error) {
     console.error('Error retrieving Payment Intent:', error)
@@ -265,6 +289,7 @@ export async function createRefund(params: {
   const { paymentIntentId, amount, reason, metadata } = params
 
   try {
+    const stripeClient = ensureStripeConfigured()
     const refundParams: any = {
       payment_intent: paymentIntentId,
     }
@@ -274,7 +299,7 @@ export async function createRefund(params: {
     if (reason) refundParams.reason = reason
     if (metadata) refundParams.metadata = metadata
 
-    const refund = await stripe.refunds.create(refundParams)
+    const refund = await stripeClient.refunds.create(refundParams)
 
     return refund
   } catch (error) {
@@ -309,15 +334,17 @@ export function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string
 ): Stripe.Event {
-  if (!STRIPE_WEBHOOK_SECRET) {
+  const stripeClient = ensureStripeConfigured()
+  
+  if (!STRIPE_WEBHOOK_SECRET_KEY) {
     throw new Error('STRIPE_WEBHOOK_SECRET is not configured')
   }
 
   try {
-    const event = stripe.webhooks.constructEvent(
+    const event = stripeClient.webhooks.constructEvent(
       payload,
       signature,
-      STRIPE_WEBHOOK_SECRET
+      STRIPE_WEBHOOK_SECRET_KEY
     )
 
     return event
@@ -343,8 +370,10 @@ export async function getOrCreateCustomer(params: {
   const { email, name, phone, metadata } = params
 
   try {
+    const stripeClient = ensureStripeConfigured()
+    
     // Try to find existing customer by email
-    const existingCustomers = await stripe.customers.list({
+    const existingCustomers = await stripeClient.customers.list({
       email,
       limit: 1,
     })
@@ -363,7 +392,7 @@ export async function getOrCreateCustomer(params: {
     if (phone) customerParams.phone = phone
     if (metadata) customerParams.metadata = metadata
 
-    const customer = await stripe.customers.create(customerParams)
+    const customer = await stripeClient.customers.create(customerParams)
 
     return customer
   } catch (error) {
@@ -414,7 +443,7 @@ export const TEST_CARDS = {
 export function logStripeConfig() {
   console.log('Stripe Configuration:')
   console.log('- Test Mode:', isTestMode())
-  console.log('- Webhook Secret Configured:', !!STRIPE_WEBHOOK_SECRET)
+  console.log('- Webhook Secret Configured:', !!STRIPE_WEBHOOK_SECRET_KEY)
   console.log('- Publishable Key Configured:', !!STRIPE_PUBLISHABLE_KEY)
   console.log('- Base URL:', BASE_URL)
 }
