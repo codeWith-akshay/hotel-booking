@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: hotel-booking
+    runtime: node
+    plan: free
+    region: oregon # Change to your preferred region: oregon, frankfurt, singapore, ohio
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Set this in Render dashboard
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_URL
+        sync: false # Set to your Render URL
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false # Set to your Render URL
+      - key: STRIPE_SECRET_KEY
+        sync: false # Optional: Set in dashboard if using payments
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false # Optional: Set in dashboard if using payments
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false # Optional: Set in dashboard if using payments
+      - key: IRCA_API_KEY
+        sync: false # Optional: Set in dashboard if using IRCA integration
+      - key: NEXT_PUBLIC_IRCA_API_URL
+        value: https://api.irca.org

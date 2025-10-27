@@ -36,6 +36,7 @@ function SuperAdminUsersContent() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('ALL')
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -62,8 +63,46 @@ function SuperAdminUsersContent() {
     }
   }
 
+  const handleEditUser = (userId: string) => {
+    router.push(`/superadmin/users/${userId}/edit`)
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setDeleteLoading(userId)
+    try {
+      const response = await fetch(`/api/superadmin/users/${userId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          alert('User deleted successfully')
+          // Refresh the user list
+          fetchUsers()
+        } else {
+          alert(data.message || 'Failed to delete user')
+        }
+      } else {
+        alert('Failed to delete user')
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      alert('An error occurred while deleting the user')
+    } finally {
+      setDeleteLoading(null)
+    }
+  }
+
   const handleLogout = () => {
-    router.push('/auth/login')
+    // Clear auth cookies and redirect to login
+    document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    document.cookie = 'refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    router.push('/login')
   }
 
   return (
@@ -87,6 +126,15 @@ function SuperAdminUsersContent() {
             <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
             <p className="text-gray-600 mt-1">Manage all system users, roles, and permissions</p>
           </div>
+          <button
+            onClick={() => router.push('/superadmin/users/create')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Create Admin
+          </button>
         </div>
 
         {/* Filter Tabs */}
@@ -114,20 +162,21 @@ function SuperAdminUsersContent() {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bookings</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bookings</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -163,8 +212,19 @@ function SuperAdminUsersContent() {
                       {new Date(user.lastLogin).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
-                      <button className="text-red-600 hover:text-red-800">Delete</button>
+                      <button 
+                        onClick={() => handleEditUser(user.id)}
+                        className="text-blue-600 hover:text-blue-800 mr-3 font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(user.id, user.name)}
+                        disabled={deleteLoading === user.id}
+                        className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                      >
+                        {deleteLoading === user.id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -176,6 +236,7 @@ function SuperAdminUsersContent() {
                 No users found
               </div>
             )}
+            </div>
           </div>
         )}
       </div>

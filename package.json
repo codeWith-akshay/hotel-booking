@@ -9,8 +9,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm db:migrate:deploy && next build",
-    "start": "next start",
+    "build": "prisma generate && prisma migrate deploy && next build",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
