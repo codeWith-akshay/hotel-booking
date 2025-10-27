@@ -25,6 +25,10 @@ import type {
   RouteConfig,
 } from './src/types/middleware.types'
 
+// Import audit logging - NOTE: Can't use in middleware due to Prisma Edge limitations
+// Audit logging will be done in API routes instead
+// import { logAccessGranted, logAccessDenied } from './src/lib/services/audit.service'
+
 // ==========================================
 // CONFIGURATION
 // ==========================================
@@ -41,53 +45,223 @@ const JWT_ACCESS_SECRET =
  * Enable debug logging
  * Set to false in production for performance
  */
-const DEBUG_MODE = process.env.NODE_ENV === 'development'
+const DEBUG_MODE = true  // Force enable for debugging
+
+// Log when middleware file is loaded
+console.log('========================================')
+console.log('🚀 MIDDLEWARE FILE LOADED!')
+console.log('========================================')
 
 /**
  * Route protection configuration
  * Define which routes require authentication and specific roles
  * 
+ * NOTE: Page routes (/admin, /dashboard, etc.) are protected client-side by ProtectedRoute component
+ * This middleware protects API routes and adds audit logging
+ * 
  * Path patterns:
- * - Exact match: '/dashboard' matches only /dashboard
- * - Prefix match: '/admin' matches /admin, /admin/users, etc.
+ * - Exact match: '/api/user' matches only /api/user
+ * - Prefix match: '/api/admin' matches /api/admin, /api/admin/users, etc.
  * - Wildcard: '/api/admin*' explicitly matches all /api/admin/* routes
  * 
  * Role hierarchy (most to least privileged):
- * 1. SUPERADMIN - Full system access
- * 2. ADMIN - Administrative access
- * 3. MEMBER - Basic user access
+ * 1. SUPERADMIN - Full system access + system management
+ * 2. ADMIN - Administrative access to bookings, rooms, users
+ * 3. MEMBER - Basic user access to own bookings
  */
 const PROTECTED_ROUTES: RouteConfig[] = [
-  // Member dashboard - requires MEMBER role or higher
+  // ==========================================
+  // MEMBER ROUTES (All authenticated users)
+  // ==========================================
   {
-    path: '/dashboard',
+    path: '/api/user/profile',
     roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'],
     requiresAuth: true,
-    redirectTo: '/login',
   },
-  // Admin panel - requires ADMIN role or higher
   {
-    path: '/admin',
+    path: '/api/bookings/my-bookings',
+    roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/bookings/create',
+    roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/payments/process',
+    roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/notifications/user',
+    roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+
+  // ==========================================
+  // ADMIN ROUTES (Admin + SuperAdmin only)
+  // ==========================================
+  
+  // Booking Management
+  {
+    path: '/api/admin/bookings',
     roles: ['ADMIN', 'SUPERADMIN'],
     requiresAuth: true,
-    redirectTo: '/login',
   },
-  // Super admin panel - requires SUPERADMIN role only
   {
-    path: '/superadmin',
+    path: '/api/admin/bookings/override',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/admin/bookings/checkin',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/admin/bookings/checkout',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Room Management
+  {
+    path: '/api/admin/rooms',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/admin/room-types',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Inventory Management
+  {
+    path: '/api/admin/inventory',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Payment Management
+  {
+    path: '/api/admin/payments',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/admin/payments/refund',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // User Management
+  {
+    path: '/api/admin/users',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Notification Management
+  {
+    path: '/api/admin/notifications',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/admin/broadcast',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Reports & Analytics
+  {
+    path: '/api/admin/reports',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/admin/analytics',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Waitlist Management
+  {
+    path: '/api/admin/waitlist',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+
+  // ==========================================
+  // SUPERADMIN ROUTES (SuperAdmin only)
+  // ==========================================
+  
+  // User Role Management
+  {
+    path: '/api/superadmin/users/role',
     roles: ['SUPERADMIN'],
     requiresAuth: true,
-    redirectTo: '/login',
   },
-  // API routes that require authentication
   {
-    path: '/api/user',
-    roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'],
+    path: '/api/superadmin/users/delete',
+    roles: ['SUPERADMIN'],
     requiresAuth: true,
   },
+  
+  // System Management
+  {
+    path: '/api/superadmin/system',
+    roles: ['SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/superadmin/settings',
+    roles: ['SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/superadmin/backup',
+    roles: ['SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Audit Logs
+  {
+    path: '/api/superadmin/audit-logs',
+    roles: ['SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/admin/audit-logs',
+    roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Data Export
+  {
+    path: '/api/superadmin/export',
+    roles: ['SUPERADMIN'],
+    requiresAuth: true,
+  },
+  
+  // Payment Overrides
+  {
+    path: '/api/superadmin/payments/override',
+    roles: ['SUPERADMIN'],
+    requiresAuth: true,
+  },
+
+  // Catch-all admin routes
   {
     path: '/api/admin',
     roles: ['ADMIN', 'SUPERADMIN'],
+    requiresAuth: true,
+  },
+  {
+    path: '/api/superadmin',
+    roles: ['SUPERADMIN'],
     requiresAuth: true,
   },
 ]
@@ -149,7 +323,7 @@ function isPublicRoute(pathname: string): boolean {
  * findRouteConfig('/api/admin/users') // { path: '/api/admin', roles: ['ADMIN', ...], ... }
  */
 function findRouteConfig(pathname: string): RouteConfig | undefined {
-  return PROTECTED_ROUTES.find((route) => {
+  const matched = PROTECTED_ROUTES.find((route) => {
     if (route.path.endsWith('*')) {
       // Wildcard match
       return pathname.startsWith(route.path.slice(0, -1))
@@ -157,6 +331,14 @@ function findRouteConfig(pathname: string): RouteConfig | undefined {
     // Exact or prefix match
     return pathname === route.path || pathname.startsWith(route.path + '/')
   })
+  
+  if (DEBUG_MODE && matched) {
+    console.log(`[Middleware] 🎯 Route matched: ${pathname} → ${matched.path}`)
+  } else if (DEBUG_MODE && !matched) {
+    console.log(`[Middleware] ❌ No route match for: ${pathname}`)
+  }
+  
+  return matched
 }
 
 /**
@@ -332,13 +514,26 @@ function createRedirectResponse(
  * 
  * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
-export function middleware(request: NextRequest) {
+export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // FORCE LOG - Always visible regardless of DEBUG_MODE
+  console.log(`========================================`)
+  console.log(`[Middleware] 🔵 EXECUTING for: ${pathname}`)
+  console.log(`[Middleware] 🔍 Cookies present:`, request.cookies.getAll().map(c => c.name))
+  console.log(`========================================`)
+
+  if (DEBUG_MODE) {
+    console.log(`[Middleware] 🔵 Processing: ${pathname}`)
+  }
 
   // ==========================================
   // STEP 1: Check if route is public
   // ==========================================
   if (isPublicRoute(pathname)) {
+    if (DEBUG_MODE) {
+      console.log(`[Middleware] ✅ Public route: ${pathname}`)
+    }
     return NextResponse.next()
   }
 
@@ -356,10 +551,23 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (DEBUG_MODE) {
+    console.log(`[Middleware] 🔒 Protected route matched: ${routeConfig.path}`)
+  }
+
   // ==========================================
   // STEP 3: Extract and verify token
   // ==========================================
   const token = extractToken(request)
+
+  if (DEBUG_MODE) {
+    console.log(`[Middleware] 🔍 Token extraction for ${pathname}:`, {
+      hasAuthHeader: !!request.headers.get('authorization'),
+      hasAuthCookie: !!request.cookies.get('auth-session'),
+      tokenFound: !!token,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+    })
+  }
 
   if (!token) {
     // No token provided
@@ -387,6 +595,14 @@ export function middleware(request: NextRequest) {
 
   // Verify token signature and expiration
   const user = verifyToken(token)
+
+  if (DEBUG_MODE) {
+    console.log(`[Middleware] 🔍 Token verification result:`, {
+      verified: !!user,
+      userId: user?.userId,
+      role: user?.role,
+    })
+  }
 
   if (!user) {
     // Invalid or expired token
@@ -441,7 +657,80 @@ export function middleware(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 5: Inject user context into headers
+  // STEP 5: Check profile completion
+  // ==========================================
+  console.log(`[Middleware] 🔍 REACHED PROFILE CHECK for ${pathname}`)
+  console.log(`[Middleware] 📊 User object:`, JSON.stringify(user, null, 2))
+  
+  // For MEMBER, ADMIN, and SUPERADMIN roles, check if profile is completed
+  // Redirect to /profile/setup if incomplete
+  // Allow access to /profile/setup itself and API routes
+  const profileCompleted = (user as any).profileCompleted ?? false
+  console.log(`[Middleware] 🎯 Profile completed value: ${profileCompleted}`)
+  
+  if (DEBUG_MODE) {
+    console.log(`[Middleware] 🔍 Profile check for ${pathname}:`, {
+      userId: user.userId,
+      profileCompleted,
+      pathname,
+    })
+  }
+  
+  // Routes that require profile completion
+  const requiresProfileCompletion = pathname.startsWith('/dashboard') || 
+                                     pathname.startsWith('/admin') || 
+                                     pathname.startsWith('/superadmin')
+  
+  console.log(`[Middleware] 🔑 Requires profile completion: ${requiresProfileCompletion}`)
+  
+  // Exclude /profile/setup and profile-related API routes from the check
+  const isProfileSetupRoute = pathname === '/profile/setup' || pathname.startsWith('/profile/setup/')
+  const isProfileApiRoute = pathname === '/api/user/update-profile' || pathname === '/api/user/profile'
+  
+  console.log(`[Middleware] 🚪 Is profile setup route: ${isProfileSetupRoute}`)
+  console.log(`[Middleware] 🛠️ Is profile API route: ${isProfileApiRoute}`)
+  
+  // Check 1: Redirect incomplete profiles to setup
+  if (requiresProfileCompletion && !profileCompleted && !isProfileSetupRoute && !isProfileApiRoute) {
+    console.error(`[Middleware] 🚨 REDIRECT TRIGGERED! Profile incomplete for user ${user.userId}`)
+    console.error(`[Middleware] 📍 Redirecting from ${pathname} to /profile/setup`)
+    if (DEBUG_MODE) {
+      console.warn(`[Middleware] ⚠️  Profile incomplete for user ${user.userId}. Redirecting to /profile/setup`)
+      console.warn(`[Middleware] 📊 Details:`, {
+        requiresProfileCompletion,
+        profileCompleted,
+        isProfileSetupRoute,
+        isProfileApiRoute,
+        willRedirect: true
+      })
+    }
+    
+    const setupUrl = new URL('/profile/setup', request.url)
+    setupUrl.searchParams.set('message', 'Please complete your profile to continue')
+    setupUrl.searchParams.set('returnTo', pathname)
+    return NextResponse.redirect(setupUrl)
+  } else {
+    console.log(`[Middleware] ✅ Profile check PASSED (no redirect needed) - Conditions:`, {
+      requiresProfileCompletion,
+      profileCompleted,
+      isProfileSetupRoute,
+      isProfileApiRoute
+    })
+  }
+
+  // Check 2: Redirect completed profiles away from setup (prevent unnecessary access)
+  if (isProfileSetupRoute && profileCompleted && !isProfileApiRoute) {
+    if (DEBUG_MODE) {
+      console.log(`[Middleware] ✅ Profile already completed for user ${user.userId}. Redirecting to /dashboard`)
+    }
+    
+    const dashboardUrl = new URL('/dashboard', request.url)
+    dashboardUrl.searchParams.set('message', 'Your profile is already complete')
+    return NextResponse.redirect(dashboardUrl)
+  }
+
+  // ==========================================
+  // STEP 6: Inject user context and audit info into headers
   // ==========================================
   // Add user information to request headers
   // These headers can be accessed in route handlers via headers()
@@ -453,6 +742,23 @@ export function middleware(request: NextRequest) {
   if (user.email) {
     requestHeaders.set('x-user-email', user.email)
   }
+  
+  // Add audit tracking headers for API routes
+  if (pathname.startsWith('/api/')) {
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    
+    requestHeaders.set('x-audit-ip', clientIp)
+    requestHeaders.set('x-audit-user-agent', userAgent)
+    requestHeaders.set('x-audit-route', pathname)
+    requestHeaders.set('x-audit-method', request.method)
+    requestHeaders.set('x-audit-timestamp', new Date().toISOString())
+    
+    // Flag admin/superadmin actions for audit logging
+    if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
+      requestHeaders.set('x-audit-required', 'true')
+    }
+  }
 
   // Create response with modified headers
   const response = NextResponse.next({
@@ -462,7 +768,12 @@ export function middleware(request: NextRequest) {
   })
 
   // ==========================================
-  // STEP 6: Log successful access
+  // STEP 7: Add Security Headers (Day 20)
+  // ==========================================
+  addSecurityHeaders(response)
+
+  // ==========================================
+  // STEP 8: Log successful access
   // ==========================================
   if (DEBUG_MODE) {
     console.log(
@@ -471,6 +782,63 @@ export function middleware(request: NextRequest) {
   }
 
   return response
+}
+
+// ==========================================
+// SECURITY HEADERS (Day 20)
+// ==========================================
+
+/**
+ * Add security headers to response
+ * Implements OWASP security best practices
+ * 
+ * @param {NextResponse} response - Response to add headers to
+ */
+function addSecurityHeaders(response: NextResponse): void {
+  // Content Security Policy (CSP)
+  // Starter policy - adjust based on your needs
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Note: Remove unsafe-* in production
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ]
+
+  response.headers.set(
+    'Content-Security-Policy',
+    cspDirectives.join('; ')
+  )
+
+  // Prevent clickjacking
+  response.headers.set('X-Frame-Options', 'DENY')
+
+  // Prevent MIME type sniffing
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+
+  // Control referrer information
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+
+  // Force HTTPS (only in production)
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains'
+    )
+  }
+
+  // XSS Protection (legacy but still useful)
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+
+  // Permissions Policy (formerly Feature-Policy)
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  )
 }
 
 // ==========================================

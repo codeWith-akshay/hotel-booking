@@ -4,8 +4,11 @@
 // Helper functions to access authenticated user context
 // in API routes and server components
 
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
+import jwt from 'jsonwebtoken'
 import type { RoleName } from '@prisma/client'
+
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'your-access-secret-change-in-production'
 
 /**
  * User context from middleware
@@ -19,8 +22,8 @@ export interface UserContext {
 }
 
 /**
- * Get authenticated user context from middleware headers
- * Use this in API route handlers and server components
+ * Get authenticated user context from middleware headers or JWT token
+ * Use this in API route handlers, server components, and server actions
  * 
  * @returns {Promise<UserContext | null>} User context or null if not authenticated
  * 
@@ -54,6 +57,7 @@ export interface UserContext {
  */
 export async function getCurrentUser(): Promise<UserContext | null> {
   try {
+    // First, try to get user from middleware headers (for page routes)
     const headersList = await headers()
     
     const userId = headersList.get('x-user-id')
@@ -61,18 +65,39 @@ export async function getCurrentUser(): Promise<UserContext | null> {
     const name = headersList.get('x-user-name')
     const role = headersList.get('x-user-role') as RoleName | null
 
-    if (!userId || !phone || !name || !role) {
+    if (userId && phone && name && role) {
+      return {
+        userId,
+        phone,
+        name,
+        role,
+      }
+    }
+
+    // If headers not available (e.g., server actions), check JWT token from cookies
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth-session')?.value
+
+    if (!token) {
       return null
     }
 
+    // Verify JWT token
+    const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as {
+      userId: string
+      phone: string
+      name: string
+      role: RoleName
+    }
+
     return {
-      userId,
-      phone,
-      name,
-      role,
+      userId: decoded.userId,
+      phone: decoded.phone,
+      name: decoded.name,
+      role: decoded.role,
     }
   } catch (error) {
-    console.error('Failed to get current user:', error)
+    console.error('❌ Failed to get current user:', error)
     return null
   }
 }

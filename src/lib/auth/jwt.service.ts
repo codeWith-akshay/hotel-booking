@@ -22,6 +22,7 @@ export interface JWTPayload {
   name: string
   role: string
   roleId: string
+  profileCompleted?: boolean
 }
 
 export interface TokenPair {
@@ -105,7 +106,10 @@ export function verifyAccessToken(token: string): DecodedToken | null {
     const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as DecodedToken
     return decoded
   } catch (error) {
-    console.error('Access token verification failed:', error)
+    // Only log non-expiration errors (token expiration is expected behavior)
+    if (error instanceof Error && error.name !== 'TokenExpiredError') {
+      console.error('Access token verification failed:', error)
+    }
     return null
   }
 }
@@ -121,7 +125,10 @@ export function verifyRefreshToken(token: string): DecodedToken | null {
     const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as DecodedToken
     return decoded
   } catch (error) {
-    console.error('Refresh token verification failed:', error)
+    // Only log non-expiration errors (token expiration is expected behavior)
+    if (error instanceof Error && error.name !== 'TokenExpiredError') {
+      console.error('Refresh token verification failed:', error)
+    }
     return null
   }
 }

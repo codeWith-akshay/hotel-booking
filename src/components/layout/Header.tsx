@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -92,10 +93,11 @@ export interface HeaderProps {
 
 const DEFAULT_NAV_LINKS: NavLink[] = [
   { label: 'Dashboard', href: '/dashboard', roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'] },
-  { label: 'Bookings', href: '/bookings', roles: ['MEMBER', 'ADMIN'] },
+  { label: 'Rooms', href: '/rooms', roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'] },
+  { label: 'Book Now', href: '/booking', roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'] },
   { label: 'Profile', href: '/profile', roles: ['MEMBER', 'ADMIN', 'SUPERADMIN'] },
-  { label: 'Reports', href: '/reports', roles: ['ADMIN', 'SUPERADMIN'] },
-  { label: 'Settings', href: '/settings', roles: ['SUPERADMIN'] },
+  { label: 'Admin', href: '/admin', roles: ['ADMIN', 'SUPERADMIN'] },
+  { label: 'Superadmin', href: '/superadmin', roles: ['SUPERADMIN'] },
 ]
 
 // ==========================================
@@ -217,26 +219,28 @@ export default function Header({
   }
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
+    <header className="bg-white shadow-md sticky top-0 z-50 safe-top" role="banner">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
           {/* ==========================================
               LEFT SECTION: Sidebar Toggle + Logo
           ========================================== */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* Sidebar Toggle (Desktop) */}
             {showSidebarToggle && (
               <button
                 onClick={onSidebarToggle}
-                className="hidden lg:block p-2 rounded-md hover:bg-gray-100 transition-colors"
+                className="hidden lg:flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 focus-ring transition-all duration-200"
                 aria-label="Toggle sidebar"
+                aria-expanded={false}
               >
                 <svg
                   className="w-6 h-6 text-gray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -249,9 +253,13 @@ export default function Header({
             )}
 
             {/* Logo */}
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-linear-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">H</span>
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 focus-ring rounded-lg p-1 -m-1 transition-all duration-200 hover:opacity-80"
+              aria-label="Hotel Booking - Go to home"
+            >
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-linear-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-lg sm:text-xl">H</span>
               </div>
               <span className="hidden sm:block text-xl font-bold text-gray-900">
                 Hotel Booking
@@ -265,20 +273,22 @@ export default function Header({
           <div className="hidden md:flex items-center gap-4 flex-1 justify-center max-w-2xl">
             {/* Search Bar */}
             {showSearch && (
-              <form onSubmit={handleSearch} className="flex-1 max-w-md">
+              <form onSubmit={handleSearch} className="flex-1 max-w-md" role="search">
                 <div className="relative">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={searchPlaceholder}
-                    className="w-full px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    aria-label="Search"
+                    className="w-full px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
                   />
                   <svg
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <path
                       strokeLinecap="round"
@@ -293,21 +303,22 @@ export default function Header({
 
             {/* Navigation Links */}
             {!showSearch && (
-              <nav className="flex items-center space-x-1">
+              <nav className="flex items-center space-x-1" role="navigation" aria-label="Main navigation">
                 {visibleNavLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="relative px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center gap-2"
+                    className="relative px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus-ring transition-all duration-200 flex items-center gap-2"
+                    aria-label={link.label}
                   >
                     {link.icon && (
-                      <span className="text-base">
+                      <span className="text-base" aria-hidden="true">
                         {typeof link.icon === 'string' ? link.icon : link.icon}
                       </span>
                     )}
                     {link.label}
                     {link.badge && (
-                      <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full">
+                      <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full" aria-label={`${link.badge} notifications`}>
                         {link.badge}
                       </span>
                     )}
@@ -318,7 +329,7 @@ export default function Header({
           </div>
 
           {/* ==========================================
-              RIGHT SECTION: Notifications + Profile Avatar
+              RIGHT SECTION: Notifications + Theme Toggle + Profile Avatar
           ========================================== */}
           <div className="flex items-center gap-2">
             {/* Notifications Bell */}
@@ -326,14 +337,17 @@ export default function Header({
               <div className="relative">
                 <button
                   onClick={handleNotificationClick}
-                  className="p-2 rounded-md hover:bg-gray-100 transition-colors relative"
-                  aria-label="Notifications"
+                  className="p-2 rounded-lg hover:bg-gray-100 focus-ring transition-all duration-200 relative touch-target"
+                  aria-label={`Notifications${notificationsCount > 0 ? ` - ${notificationsCount} unread` : ''}`}
+                  aria-expanded={notificationsOpen}
+                  aria-haspopup="true"
                 >
                   <svg
                     className="w-6 h-6 text-gray-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <path
                       strokeLinecap="round"
@@ -343,7 +357,10 @@ export default function Header({
                     />
                   </svg>
                   {notificationsCount > 0 && (
-                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full min-w-[18px]">
+                    <span 
+                      className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full min-w-[18px] shadow-lg animate-pulse"
+                      aria-hidden="true"
+                    >
                       {notificationsCount > 99 ? '99+' : notificationsCount}
                     </span>
                   )}
@@ -355,10 +372,16 @@ export default function Header({
                     <div
                       className="fixed inset-0 z-40"
                       onClick={() => setNotificationsOpen(false)}
+                      aria-hidden="true"
                     />
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto">
+                    <div 
+                      className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 max-h-96 overflow-y-auto animate-fade-in-up"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="notifications-title"
+                    >
                       <div className="px-4 py-2 border-b border-gray-200">
-                        <h3 className="text-sm font-semibold text-gray-900">
+                        <h3 id="notifications-title" className="text-sm font-semibold text-gray-900">
                           Notifications
                           {notificationsCount > 0 && (
                             <span className="ml-2 text-xs text-gray-500">
@@ -384,17 +407,23 @@ export default function Header({
               </div>
             )}
 
+            {/* Theme Toggle */}
+            <ThemeToggle size="md" showTooltip className="hidden sm:flex" />
+
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 focus-ring transition-all duration-200 touch-target"
               aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               <svg
                 className="w-6 h-6 text-gray-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 {mobileMenuOpen ? (
                   <path
@@ -418,30 +447,33 @@ export default function Header({
             <div className="relative">
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 focus-ring transition-all duration-200"
                 aria-label="User menu"
+                aria-expanded={profileDropdownOpen}
+                aria-haspopup="true"
               >
                 {/* Avatar */}
                 {user.avatarUrl ? (
                   <img
                     src={user.avatarUrl}
                     alt={user.name}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-300"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-300 hover:border-blue-500 transition-colors duration-200"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold border-2 border-gray-300">
+                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold border-2 border-gray-300 hover:border-blue-500 transition-all duration-200 shadow-md">
                     {getUserInitials(user.name)}
                   </div>
                 )}
 
                 {/* Chevron (Desktop only) */}
                 <svg
-                  className={`hidden sm:block w-4 h-4 text-gray-600 transition-transform ${
+                  className={`hidden sm:block w-4 h-4 text-gray-600 transition-transform duration-200 ${
                     profileDropdownOpen ? 'rotate-180' : ''
                   }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -459,13 +491,19 @@ export default function Header({
                   <div
                     className="fixed inset-0 z-40"
                     onClick={() => setProfileDropdownOpen(false)}
+                    aria-hidden="true"
                   />
 
                   {/* Dropdown Content */}
-                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                  <div 
+                    className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 animate-fade-in-up"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="user-menu-title"
+                  >
                     {/* User Info Section */}
                     <div className="px-4 py-3 border-b border-gray-200">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p id="user-menu-title" className="text-sm font-semibold text-gray-900">
                         {user.name}
                       </p>
                       {getDisplayContact() && (
@@ -475,17 +513,19 @@ export default function Header({
                         className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(
                           user.role
                         )}`}
+                        aria-label={`Role: ${user.role}`}
                       >
                         {user.role}
                       </span>
                     </div>
 
                     {/* Menu Items */}
-                    <div className="py-1">
+                    <div className="py-1" role="menu" aria-labelledby="user-menu-title">
                       <Link
                         href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus-ring transition-all duration-200"
                         onClick={() => setProfileDropdownOpen(false)}
+                        role="menuitem"
                       >
                         <div className="flex items-center gap-2">
                           <svg
@@ -493,6 +533,7 @@ export default function Header({
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
+                            aria-hidden="true"
                           >
                             <path
                               strokeLinecap="round"
@@ -507,8 +548,9 @@ export default function Header({
 
                       <Link
                         href="/settings"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus-ring transition-all duration-200"
                         onClick={() => setProfileDropdownOpen(false)}
+                        role="menuitem"
                       >
                         <div className="flex items-center gap-2">
                           <svg
@@ -516,6 +558,7 @@ export default function Header({
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
+                            aria-hidden="true"
                           >
                             <path
                               strokeLinecap="round"
@@ -539,7 +582,8 @@ export default function Header({
                     <div className="border-t border-gray-200 py-1">
                       <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 focus-ring transition-all duration-200"
+                        role="menuitem"
                       >
                         <div className="flex items-center gap-2">
                           <svg
@@ -547,6 +591,7 @@ export default function Header({
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
+                            aria-hidden="true"
                           >
                             <path
                               strokeLinecap="round"
@@ -570,18 +615,30 @@ export default function Header({
             MOBILE MENU (Expanded)
         ========================================== */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-3 space-y-1">
+          <nav 
+            id="mobile-menu"
+            className="md:hidden border-t border-gray-200 py-3 space-y-1 animate-fade-in-up"
+            role="navigation"
+            aria-label="Mobile navigation"
+          >
             {visibleNavLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-md transition-colors"
+                className="block px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 focus-ring"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {link.label}
+                <div className="flex items-center justify-between">
+                  <span>{link.label}</span>
+                  {link.badge && (
+                    <span className="px-2 py-1 text-xs font-semibold bg-red-500 text-white rounded-full">
+                      {link.badge}
+                    </span>
+                  )}
+                </div>
               </Link>
             ))}
-          </div>
+          </nav>
         )}
       </div>
     </header>

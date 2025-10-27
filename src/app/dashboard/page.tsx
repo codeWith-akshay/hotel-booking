@@ -1,10 +1,46 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { Button } from '@/components/ui'
 import { formatPhoneNumber } from '@/lib/utils'
+import { ProfileCompletionGuard } from '@/components/guards/ProfileCompletionGuard'
+import NotificationCard, { NotificationCardSkeleton, NotificationCardEmpty } from '@/components/notifications/NotificationCard'
+import StatCard, { StatCardGrid } from '@/components/dashboard/StatCard'
+
+// ==========================================
+// MOCK NOTIFICATIONS
+// ==========================================
+
+const mockNotifications = [
+  {
+    id: '1',
+    type: 'BROADCAST' as const,
+    channel: 'IN_APP' as const,
+    message: 'Complete your profile to start booking hotels and enjoy exclusive member benefits.',
+    subject: 'Welcome to Your Dashboard',
+    status: 'SENT' as const,
+    scheduledAt: new Date(),
+    sentAt: new Date(),
+    createdAt: new Date(),
+    errorMessage: null,
+    metadata: null,
+  },
+  {
+    id: '2',
+    type: 'BOOKING_CONFIRMATION' as const,
+    channel: 'IN_APP' as const,
+    message: 'Your account is now fully set up! You can now make bookings and access all features.',
+    subject: 'Profile Setup Complete',
+    status: 'SENT' as const,
+    scheduledAt: new Date(Date.now() - 1000 * 60 * 30), // 30 min ago
+    sentAt: new Date(Date.now() - 1000 * 60 * 30),
+    createdAt: new Date(Date.now() - 1000 * 60 * 30),
+    errorMessage: null,
+    metadata: null,
+  },
+]
 
 // ==========================================
 // MEMBER DASHBOARD PAGE
@@ -13,16 +49,24 @@ import { formatPhoneNumber } from '@/lib/utils'
 export default function DashboardPage() {
   const router = useRouter()
   const { user, isAuthenticated, logout } = useAuthStore()
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Wait for Zustand store to rehydrate from localStorage
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // ==========================================
   // REDIRECT IF NOT AUTHENTICATED
   // ==========================================
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    // Only check auth after store has rehydrated
+    if (isHydrated && (!isAuthenticated || !user)) {
+      console.log('[Dashboard] Not authenticated, redirecting to login')
       router.push('/login')
     }
-  }, [isAuthenticated, user, router])
+  }, [isHydrated, isAuthenticated, user, router])
 
   // ==========================================
   // HANDLERS
@@ -43,6 +87,21 @@ export default function DashboardPage() {
   }
 
   // ==========================================
+  // LOADING STATE (WHILE HYDRATING)
+  // ==========================================
+
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
   // EARLY RETURN IF NOT AUTHENTICATED
   // ==========================================
 
@@ -51,37 +110,17 @@ export default function DashboardPage() {
   }
 
   // ==========================================
-  // RENDER
+  // RENDER WITH PROFILE CHECK
   // ==========================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <ProfileCompletionGuard>
+      {/* Header with user info and logout */}
+      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">
-                Hotel Booking
-              </h1>
-            </div>
-
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            
             {/* User Menu */}
             <div className="flex items-center gap-4">
               <div className="hidden sm:block text-right">
@@ -117,8 +156,8 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Dashboard Content */}
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Welcome Card */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
           <div className="flex items-start justify-between">
@@ -131,85 +170,61 @@ export default function DashboardPage() {
                 stay.
               </p>
 
-              {/* Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-blue-900">0</p>
-                      <p className="text-sm text-blue-700">Active Bookings</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-green-50 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-green-900">0</p>
-                      <p className="text-sm text-green-700">
-                        Completed Stays
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-purple-900">
-                        {user.role}
-                      </p>
-                      <p className="text-sm text-purple-700">Member Role</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Enhanced Stats with StatCard Component */}
             </div>
+          </div>
+          
+          <StatCardGrid columns={4}>
+            <StatCard
+              label="Active Bookings"
+              value={0}
+              icon="📅"
+              variant="primary"
+              description="Current reservations"
+            />
+            <StatCard
+              label="Completed Stays"
+              value={0}
+              icon="✅"
+              variant="success"
+              description="Total stays completed"
+            />
+            <StatCard
+              label="Loyalty Points"
+              value={0}
+              icon="⭐"
+              variant="warning"
+              description="Earn more on bookings"
+            />
+            <StatCard
+              label="Member Role"
+              value={user.role}
+              icon="👤"
+              variant="info"
+              description="Account tier"
+            />
+          </StatCardGrid>
+        </div>
+
+        {/* Notifications Section - NEW INTEGRATION */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            Recent Notifications
+          </h2>
+          <div className="space-y-3">
+            {mockNotifications.length > 0 ? (
+              mockNotifications.map((notification) => (
+                <NotificationCard
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={(id: string) => console.log('Mark read:', id)}
+                  onCancel={(id: string) => console.log('Cancel:', id)}
+                  showActions={true}
+                />
+              ))
+            ) : (
+              <NotificationCardEmpty />
+            )}
           </div>
         </div>
 
@@ -218,7 +233,7 @@ export default function DashboardPage() {
           {/* Search Hotels */}
           <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
                 <svg
                   className="w-6 h-6 text-blue-600"
                   fill="none"
@@ -250,7 +265,7 @@ export default function DashboardPage() {
           {/* My Bookings */}
           <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
                 <svg
                   className="w-6 h-6 text-green-600"
                   fill="none"
@@ -318,7 +333,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </ProfileCompletionGuard>
   )
 }

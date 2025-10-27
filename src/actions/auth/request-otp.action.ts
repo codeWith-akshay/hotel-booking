@@ -118,6 +118,7 @@ export async function requestOTP(
           name: `User ${validatedPhone.slice(-4)}`, // Temporary name
           email: null,
           roleId: memberRole.id,
+          profileCompleted: false, // Explicitly set to false for new users
         },
         include: { role: true },
       })

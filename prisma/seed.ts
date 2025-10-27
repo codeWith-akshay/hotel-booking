@@ -1,4 +1,4 @@
-import { PrismaClient, RoleName } from '@prisma/client'
+import { PrismaClient, RoleName, GuestType } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -226,6 +226,66 @@ async function main() {
     console.log(`   🔑 Role: ${superAdminRole.name}`)
 
     // ==========================================
+    // Seed Custom Admin User
+    // ==========================================
+    console.log('\n👤 Seeding custom admin user...')
+
+    const customAdminPhone = '+919022417920'
+    const customAdminEmail = 'admin9022@gmail.com'
+    const customAdminName = 'Custom Admin'
+
+    const customAdminUser = await prisma.user.upsert({
+      where: { phone: customAdminPhone },
+      update: {
+        name: customAdminName,
+        email: customAdminEmail,
+      },
+      create: {
+        phone: customAdminPhone,
+        name: customAdminName,
+        email: customAdminEmail,
+        roleId: adminRole.id,
+      },
+    })
+
+    console.log(`✅ Custom admin user created/verified:`)
+    console.log(`   📧 Email: ${customAdminUser.email}`)
+    console.log(`   📱 Phone: ${customAdminUser.phone}`)
+    console.log(`   👤 Name: ${customAdminUser.name}`)
+    console.log(`   🆔 ID: ${customAdminUser.id}`)
+    console.log(`   🔑 Role: ${adminRole.name}`)
+
+    // ==========================================
+    // Seed Custom Super Admin User
+    // ==========================================
+    console.log('\n👑 Seeding custom super admin user...')
+
+    const customSuperAdminPhone = '+919307547129'
+    const customSuperAdminEmail = 'superAdmin9022@gmail.com'
+    const customSuperAdminName = 'Custom Super Admin'
+
+    const customSuperAdminUser = await prisma.user.upsert({
+      where: { phone: customSuperAdminPhone },
+      update: {
+        name: customSuperAdminName,
+        email: customSuperAdminEmail,
+      },
+      create: {
+        phone: customSuperAdminPhone,
+        name: customSuperAdminName,
+        email: customSuperAdminEmail,
+        roleId: superAdminRole.id,
+      },
+    })
+
+    console.log(`✅ Custom super admin user created/verified:`)
+    console.log(`   📧 Email: ${customSuperAdminUser.email}`)
+    console.log(`   📱 Phone: ${customSuperAdminUser.phone}`)
+    console.log(`   👤 Name: ${customSuperAdminUser.name}`)
+    console.log(`   🆔 ID: ${customSuperAdminUser.id}`)
+    console.log(`   🔑 Role: ${superAdminRole.name}`)
+
+    // ==========================================
     // Seed Room Types
     // ==========================================
     console.log('\n🏨 Seeding room types...')
@@ -322,6 +382,172 @@ async function main() {
     console.log(`   📆 Date range: ${today.toISOString().split('T')[0]} to ${new Date(today.getTime() + (daysToSeed - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}`)
 
     // ==========================================
+    // Seed Booking Rules
+    // ==========================================
+    console.log('\n📋 Seeding booking rules...')
+
+    const bookingRules = [
+      {
+        guestType: GuestType.REGULAR,
+        maxDaysAdvance: 90,
+        minDaysNotice: 1,
+      },
+      {
+        guestType: GuestType.VIP,
+        maxDaysAdvance: 365,
+        minDaysNotice: 0,
+      },
+      {
+        guestType: GuestType.CORPORATE,
+        maxDaysAdvance: 180,
+        minDaysNotice: 0,
+      },
+    ]
+
+    let createdBookingRules = 0
+
+    for (const rule of bookingRules) {
+      await prisma.bookingRules.upsert({
+        where: { guestType: rule.guestType },
+        update: {
+          maxDaysAdvance: rule.maxDaysAdvance,
+          minDaysNotice: rule.minDaysNotice,
+        },
+        create: rule,
+      })
+
+      createdBookingRules++
+      console.log(
+        `✅ ${rule.guestType}: ${rule.maxDaysAdvance} days advance, ${rule.minDaysNotice} days notice`
+      )
+    }
+
+    console.log(`\n✅ Total booking rules seeded: ${createdBookingRules}`)
+
+    // ==========================================
+    // Seed Deposit Policies (DAY 12)
+    // ==========================================
+    console.log('\n💰 Seeding deposit policies...')
+
+    const depositPolicies = [
+      {
+        minRooms: 10,
+        maxRooms: 19,
+        type: 'percent',
+        value: 20.0, // 20% deposit
+        description: '10-19 rooms require 20% deposit',
+        active: true,
+      },
+      {
+        minRooms: 20,
+        maxRooms: 49,
+        type: 'percent',
+        value: 30.0, // 30% deposit
+        description: '20-49 rooms require 30% deposit',
+        active: true,
+      },
+      {
+        minRooms: 50,
+        maxRooms: 100,
+        type: 'percent',
+        value: 50.0, // 50% deposit
+        description: '50+ rooms require 50% deposit',
+        active: true,
+      },
+    ]
+
+    let createdDepositPolicies = 0
+
+    for (const policy of depositPolicies) {
+      await prisma.depositPolicy.create({
+        data: policy,
+      })
+
+      createdDepositPolicies++
+      console.log(
+        `✅ ${policy.minRooms}-${policy.maxRooms} rooms: ${policy.value}% deposit`
+      )
+    }
+
+    console.log(`\n✅ Total deposit policies seeded: ${createdDepositPolicies}`)
+
+    // ==========================================
+    // Seed Special Days (DAY 12)
+    // ==========================================
+    console.log('\n🎉 Seeding special days...')
+
+    const specialDayDate = new Date()
+    specialDayDate.setHours(0, 0, 0, 0)
+
+    const specialDays = [
+      // Christmas - Premium rates (50% increase)
+      {
+        date: new Date(specialDayDate.getFullYear(), 11, 25), // Dec 25
+        roomTypeId: null, // Apply to all room types
+        ruleType: 'special_rate',
+        rateType: 'multiplier',
+        rateValue: 1.5,
+        description: 'Christmas - Premium Rates (50% increase)',
+        active: true,
+      },
+      // New Year - Premium rates (75% increase)
+      {
+        date: new Date(specialDayDate.getFullYear(), 11, 31), // Dec 31
+        roomTypeId: null,
+        ruleType: 'special_rate',
+        rateType: 'multiplier',
+        rateValue: 1.75,
+        description: "New Year's Eve - Premium Rates (75% increase)",
+        active: true,
+      },
+      // Valentine's Day - Premium rates (30% increase)
+      {
+        date: new Date(specialDayDate.getFullYear() + 1, 1, 14), // Feb 14 next year
+        roomTypeId: null,
+        ruleType: 'special_rate',
+        rateType: 'multiplier',
+        rateValue: 1.3,
+        description: "Valentine's Day - Premium Rates (30% increase)",
+        active: true,
+      },
+      // Maintenance block (example - 30 days from now)
+      {
+        date: new Date(specialDayDate.getTime() + 30 * 24 * 60 * 60 * 1000),
+        roomTypeId: null,
+        ruleType: 'blocked',
+        rateType: null,
+        rateValue: null,
+        description: 'Property Maintenance - No Bookings Allowed',
+        active: true,
+      },
+      // Summer sale - Discounted rates (20% off)
+      {
+        date: new Date(specialDayDate.getFullYear() + 1, 5, 15), // Jun 15 next year
+        roomTypeId: null,
+        ruleType: 'special_rate',
+        rateType: 'multiplier',
+        rateValue: 0.8,
+        description: 'Summer Sale - 20% Off',
+        active: true,
+      },
+    ]
+
+    let createdSpecialDays = 0
+
+    for (const specialDay of specialDays) {
+      await prisma.specialDay.create({
+        data: specialDay,
+      })
+
+      createdSpecialDays++
+      console.log(
+        `✅ ${specialDay.date.toLocaleDateString()}: ${specialDay.description} (${specialDay.ruleType})`
+      )
+    }
+
+    console.log(`\n✅ Total special days seeded: ${createdSpecialDays}`)
+
+    // ==========================================
     // Summary
     // ==========================================
     console.log('\n' + '='.repeat(50))
@@ -329,10 +555,13 @@ async function main() {
     console.log('='.repeat(50))
     console.log('\n📊 Summary:')
     console.log(`   • Roles seeded: ${createdRoles.length}`)
-    console.log(`   • Admin users created: 4 (2 Admins + 2 Super Admins)`)
+    console.log(`   • Admin users created: 6 (3 Admins + 3 Super Admins)`)
     console.log(`   • OTP records created: 1`)
     console.log(`   • Room types seeded: ${createdRoomTypes.length}`)
     console.log(`   • Inventory records created: ${totalInventoryRecords}`)
+    console.log(`   • Booking rules created: ${createdBookingRules}`)
+    console.log(`   • Deposit policies created: ${createdDepositPolicies}`)
+    console.log(`   • Special days created: ${createdSpecialDays}`)
     console.log('\n🚀 Your database is ready to use!\n')
   } catch (error) {
     console.error('\n❌ Error during seeding:')

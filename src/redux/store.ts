@@ -9,6 +9,9 @@ import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux'
 
 // Import reducers
 import bookingsReducer from './slices/bookingsSlice'
+import adminBookingsReducer from './slices/bookingSlice'
+import superAdminReducer from './slices/superAdminSlice'
+import reportReducer from './slices/reportSlice'
 
 // ==========================================
 // ROOT REDUCER
@@ -17,6 +20,9 @@ import bookingsReducer from './slices/bookingsSlice'
 
 const rootReducer = combineReducers({
   bookings: bookingsReducer,
+  adminBookings: adminBookingsReducer, // Day 15: Admin booking management
+  superAdmin: superAdminReducer, // Day 16: SuperAdmin rules & bulk messaging
+  reports: reportReducer, // Day 17: SuperAdmin reporting & analytics
   // Add more reducers here as your app grows:
   // rooms: roomsReducer,
   // guests: guestsReducer,
@@ -47,12 +53,13 @@ export const makeStore = () => {
         serializableCheck: {
           // Ignore these action types (if you dispatch non-serializable values)
           ignoredActions: [
-            // Add action types to ignore
-            // e.g., 'bookings/setCustomObject'
+            // Ignore date-related actions that are serialized before API calls
+            'superAdmin/upsertSpecialDay/pending',
           ],
           // Ignore these field paths in state
           ignoredActionPaths: [
-            // e.g., 'payload.timestamp'
+            // Ignore date field in meta.arg for special day actions
+            'meta.arg.specialDay.date',
           ],
           ignoredPaths: [
             // e.g., 'bookings.someNonSerializableField'

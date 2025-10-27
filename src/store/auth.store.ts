@@ -10,6 +10,8 @@ export interface User {
   phone: string
   name: string
   email: string | null
+  address?: string | null
+  profileCompleted?: boolean
   role: string
   roleId: string
 }
@@ -21,6 +23,7 @@ export interface AuthState {
   refreshToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  _hasHydrated: boolean // Track if state has been rehydrated from localStorage
 
   // OTP Flow State
   pendingPhone: string | null // Phone number waiting for OTP verification
@@ -33,6 +36,7 @@ export interface AuthState {
   clearPendingPhone: () => void
   logout: () => void
   setLoading: (loading: boolean) => void
+  setHasHydrated: (hasHydrated: boolean) => void
 
   // Utilities
   isTokenExpired: () => boolean
@@ -71,6 +75,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       pendingPhone: null,
       otpExpiresAt: null,
+      _hasHydrated: false,
 
       // ==========================================
       // ACTIONS
@@ -140,6 +145,15 @@ export const useAuthStore = create<AuthState>()(
           isLoading: loading,
         }),
 
+      /**
+       * Set hydration status
+       * Called after localStorage has been rehydrated
+       */
+      setHasHydrated: (hasHydrated) =>
+        set({
+          _hasHydrated: hasHydrated,
+        }),
+
       // ==========================================
       // UTILITIES
       // ==========================================
@@ -188,6 +202,10 @@ export const useAuthStore = create<AuthState>()(
         pendingPhone: state.pendingPhone,
         otpExpiresAt: state.otpExpiresAt,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Called after state is rehydrated from localStorage
+        state?.setHasHydrated(true)
+      },
     }
   )
 )

@@ -1,9 +1,8 @@
 // ==========================================
-// IRCA MEMBERSHIP SERVICE (STUB)
+// IRCA MEMBERSHIP SERVICE (PRODUCTION)
 // ==========================================
-// Mock IRCA integration service - designed to be swappable
-// Replace with real IRCA API integration when available
-// Production-ready with proper error handling and logging
+// Real IRCA API integration service with secure handling
+// Features: API key management, retry logic, error handling, caching
 
 import type {
   IRCACheckRequest,
@@ -18,71 +17,29 @@ import {
 } from '@/lib/validation/profile.schemas'
 
 // ==========================================
-// MOCK DATABASE
+// CONFIGURATION
 // ==========================================
 
-/**
- * Mock IRCA membership database
- * Replace with actual database queries or API calls
- */
-const MOCK_MEMBERSHIPS: Record<string, IRCAMembershipData> = {
-  'IRCA-2024-001': {
-    membershipId: 'IRCA-2024-001',
-    status: 'active',
-    level: 'Premium',
-    memberSince: '2020-01-15T00:00:00.000Z',
-    expiresAt: '2025-12-31T23:59:59.000Z',
-    dues: 0,
-    duesPaid: true,
-    benefits: [
-      'Priority booking',
-      'Exclusive access to premium rooms',
-      'Complimentary breakfast',
-      'Late checkout',
-      'Airport shuttle service',
-    ],
-    lastVerified: new Date().toISOString(),
-  },
-  'IRCA-2023-042': {
-    membershipId: 'IRCA-2023-042',
-    status: 'active',
-    level: 'Standard',
-    memberSince: '2021-06-10T00:00:00.000Z',
-    expiresAt: '2025-06-30T23:59:59.000Z',
-    dues: 0,
-    duesPaid: true,
-    benefits: [
-      'Priority booking',
-      'Member-only rates',
-      'Loyalty points',
-    ],
-    lastVerified: new Date().toISOString(),
-  },
-  'IRCA-2022-789': {
-    membershipId: 'IRCA-2022-789',
-    status: 'expired',
-    level: 'Basic',
-    memberSince: '2019-03-20T00:00:00.000Z',
-    expiresAt: '2024-03-20T23:59:59.000Z',
-    dues: 150,
-    duesPaid: false,
-    benefits: [
-      'Member-only rates',
-    ],
-    lastVerified: new Date().toISOString(),
-  },
-  'IRCA-2024-999': {
-    membershipId: 'IRCA-2024-999',
-    status: 'pending',
-    level: 'Standard',
-    memberSince: new Date().toISOString(),
-    expiresAt: null,
-    dues: 100,
-    duesPaid: false,
-    benefits: [],
-    lastVerified: new Date().toISOString(),
-  },
+interface IRCAConfig {
+  apiUrl: string
+  apiKey: string
+  timeout: number
+  retryAttempts: number
+  retryDelay: number
+  cacheEnabled: boolean
+  cacheDuration: number
 }
+
+// ==========================================
+// CACHE MANAGEMENT
+// ==========================================
+
+interface CacheEntry {
+  data: IRCAMembershipData
+  timestamp: number
+}
+
+const membershipCache = new Map<string, CacheEntry>()
 
 // ==========================================
 // SERVICE CLASS
@@ -90,7 +47,7 @@ const MOCK_MEMBERSHIPS: Record<string, IRCAMembershipData> = {
 
 /**
  * IRCA Membership Service
- * Provides mock integration with IRCA membership system
+ * Provides real integration with IRCA membership system
  * 
  * @example
  * ```typescript
@@ -99,21 +56,50 @@ const MOCK_MEMBERSHIPS: Record<string, IRCAMembershipData> = {
  * ```
  */
 export class IRCAMembershipService {
-  private readonly apiUrl: string
-  private readonly apiKey: string
-  private readonly timeout: number
+  private readonly config: IRCAConfig
 
   constructor() {
-    // Configuration for real API integration
-    this.apiUrl = process.env.IRCA_API_URL || 'https://api.irca.example.com'
-    this.apiKey = process.env.IRCA_API_KEY || 'mock-api-key'
-    this.timeout = 5000 // 5 seconds
+    // Load configuration from environment variables
+    this.config = {
+      apiUrl: process.env.NEXT_PUBLIC_IRCA_API_URL || '',
+      apiKey: process.env.IRCA_API_KEY || '',
+      timeout: parseInt(process.env.IRCA_API_TIMEOUT || '10000', 10),
+      retryAttempts: parseInt(process.env.IRCA_RETRY_ATTEMPTS || '3', 10),
+      retryDelay: parseInt(process.env.IRCA_RETRY_DELAY || '1000', 10),
+      cacheEnabled: process.env.IRCA_CACHE_ENABLED !== 'false',
+      cacheDuration: parseInt(process.env.IRCA_CACHE_DURATION || '300000', 10), // 5 minutes default
+    }
+
+    // Validate configuration
+    this.validateConfig()
+  }
+
+  /**
+   * Validate IRCA API configuration
+   * @private
+   */
+  private validateConfig(): void {
+    if (!this.config.apiUrl) {
+      console.warn('[IRCA] API URL not configured. Set NEXT_PUBLIC_IRCA_API_URL environment variable.')
+    }
+    if (!this.config.apiKey) {
+      console.warn('[IRCA] API Key not configured. Set IRCA_API_KEY environment variable.')
+    }
+  }
+
+  /**
+   * Check if service is properly configured
+   * @returns {boolean} True if configured
+   */
+  isConfigured(): boolean {
+    return Boolean(this.config.apiUrl && this.config.apiKey)
   }
 
   /**
    * Check IRCA membership status
    * 
    * @param {string} membershipId - IRCA membership ID
+   * @param {boolean} forceRefresh - Bypass cache and force API call
    * @returns {Promise<IRCAResponse>} Membership data or error
    * 
    * @example
@@ -124,7 +110,7 @@ export class IRCAMembershipService {
    * }
    * ```
    */
-  async checkMembership(membershipId: string): Promise<IRCAResponse> {
+  async checkMembership(membershipId: string, forceRefresh = false): Promise<IRCAResponse> {
     try {
       // Validate input
       const validation = IRCACheckRequestSchema.safeParse({ membershipId })
@@ -137,26 +123,36 @@ export class IRCAMembershipService {
         }
       }
 
-      // In production, replace this with actual API call
-      // const response = await this.callIRCAAPI(membershipId)
-      
-      // Mock delay to simulate API call
-      await this.simulateNetworkDelay()
-
-      // Check mock database
-      const membershipData = MOCK_MEMBERSHIPS[membershipId]
-
-      if (!membershipData) {
+      // Check if service is configured
+      if (!this.isConfigured()) {
         return {
           success: false,
           data: null,
-          error: 'NOT_FOUND',
-          message: 'Membership ID not found in IRCA system',
+          error: 'CONFIGURATION_ERROR',
+          message: 'IRCA service is not properly configured. Please contact support.',
         }
       }
 
-      // Update last verified timestamp
-      membershipData.lastVerified = new Date().toISOString()
+      // Check cache if enabled
+      if (this.config.cacheEnabled && !forceRefresh) {
+        const cachedData = this.getCachedMembership(membershipId)
+        if (cachedData) {
+          console.log(`[IRCA] Cache hit for membership: ${membershipId}`)
+          return {
+            success: true,
+            data: cachedData,
+            message: 'Membership verified successfully (cached)',
+          }
+        }
+      }
+
+      // Call real IRCA API with retry logic
+      const membershipData = await this.callIRCAAPIWithRetry(membershipId)
+
+      // Cache the result
+      if (this.config.cacheEnabled && membershipData) {
+        this.cacheMembership(membershipId, membershipData)
+      }
 
       // Return success response
       return {
@@ -166,6 +162,35 @@ export class IRCAMembershipService {
       }
     } catch (error) {
       console.error('[IRCA Service] Error checking membership:', error)
+      
+      // Return appropriate error response
+      if (error instanceof Error) {
+        if (error.message.includes('NOT_FOUND')) {
+          return {
+            success: false,
+            data: null,
+            error: 'NOT_FOUND',
+            message: 'Membership ID not found in IRCA system',
+          }
+        }
+        if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
+          return {
+            success: false,
+            data: null,
+            error: 'TIMEOUT',
+            message: 'IRCA service is temporarily unavailable. Please try again later.',
+          }
+        }
+        if (error.message.includes('UNAUTHORIZED')) {
+          return {
+            success: false,
+            data: null,
+            error: 'UNAUTHORIZED',
+            message: 'Authentication failed with IRCA service. Please contact support.',
+          }
+        }
+      }
+
       return {
         success: false,
         data: null,
@@ -174,6 +199,44 @@ export class IRCAMembershipService {
       }
     }
   }
+
+  /**
+   * Verify multiple memberships at once
+   * 
+   * @param {string[]} membershipIds - Array of membership IDs
+   * @returns {Promise<Array>} Array of results
+   */
+  async checkMultipleMemberships(
+    membershipIds: string[]
+  ): Promise<Array<{ membershipId: string; result: IRCAResponse }>> {
+    const results = await Promise.all(
+      membershipIds.map(async (id) => {
+        const result = await this.checkMembership(id)
+        return { membershipId: id, result }
+      })
+    )
+
+    return results
+  }
+
+  /**
+   * Clear cached membership data
+   * 
+   * @param {string} membershipId - Optional specific ID to clear
+   */
+  clearCache(membershipId?: string): void {
+    if (membershipId) {
+      membershipCache.delete(membershipId)
+      console.log(`[IRCA] Cleared cache for membership: ${membershipId}`)
+    } else {
+      membershipCache.clear()
+      console.log('[IRCA] Cleared all membership cache')
+    }
+  }
+
+  // ==========================================
+  // PUBLIC METHODS - UTILITY
+  // ==========================================
 
   /**
    * Get membership status badge information
@@ -277,47 +340,155 @@ export class IRCAMembershipService {
   }
 
   // ==========================================
-  // PRIVATE METHODS
+  // PRIVATE METHODS - CACHE MANAGEMENT
   // ==========================================
 
   /**
-   * Simulate network delay for mock API
-   * Remove this when integrating with real API
+   * Get cached membership data if still valid
+   * @private
    */
-  private async simulateNetworkDelay(): Promise<void> {
-    const delay = Math.random() * 1000 + 500 // 500-1500ms
-    await new Promise((resolve) => setTimeout(resolve, delay))
+  private getCachedMembership(membershipId: string): IRCAMembershipData | null {
+    const cached = membershipCache.get(membershipId)
+    
+    if (!cached) {
+      return null
+    }
+
+    // Check if cache is still valid
+    const age = Date.now() - cached.timestamp
+    if (age > this.config.cacheDuration) {
+      membershipCache.delete(membershipId)
+      return null
+    }
+
+    return cached.data
+  }
+
+  /**
+   * Cache membership data
+   * @private
+   */
+  private cacheMembership(membershipId: string, data: IRCAMembershipData): void {
+    membershipCache.set(membershipId, {
+      data,
+      timestamp: Date.now(),
+    })
+  }
+
+  // ==========================================
+  // PRIVATE METHODS - API CALLS
+  // ==========================================
+
+  /**
+   * Call IRCA API with retry logic
+   * @private
+   */
+  private async callIRCAAPIWithRetry(membershipId: string): Promise<IRCAMembershipData> {
+    let lastError: Error | null = null
+
+    for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
+      try {
+        console.log(`[IRCA] API call attempt ${attempt}/${this.config.retryAttempts} for ${membershipId}`)
+        return await this.callIRCAAPI(membershipId)
+      } catch (error) {
+        lastError = error as Error
+        console.warn(`[IRCA] Attempt ${attempt} failed:`, error)
+
+        // Don't retry on validation errors or not found
+        if (lastError.message.includes('NOT_FOUND') || lastError.message.includes('VALIDATION_ERROR')) {
+          throw lastError
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (attempt < this.config.retryAttempts) {
+          const delay = this.config.retryDelay * Math.pow(2, attempt - 1)
+          console.log(`[IRCA] Waiting ${delay}ms before retry...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+      }
+    }
+
+    throw lastError || new Error('API call failed after all retries')
   }
 
   /**
    * Call real IRCA API
-   * Implement this when integrating with actual IRCA system
-   * 
    * @private
-   * @example
-   * ```typescript
-   * private async callIRCAAPI(membershipId: string): Promise<IRCAResponse> {
-   *   const response = await fetch(`${this.apiUrl}/membership/${membershipId}`, {
-   *     method: 'GET',
-   *     headers: {
-   *       'Authorization': `Bearer ${this.apiKey}`,
-   *       'Content-Type': 'application/json',
-   *     },
-   *   })
-   *   
-   *   if (!response.ok) {
-   *     throw new Error(`IRCA API error: ${response.statusText}`)
-   *   }
-   *   
-   *   const data = await response.json()
-   *   return IRCAResponseSchema.parse(data)
-   * }
-   * ```
    */
-  private async callIRCAAPI(membershipId: string): Promise<IRCAResponse> {
-    // TODO: Implement real API call
-    // This is a placeholder for future implementation
-    throw new Error('Real IRCA API not implemented yet')
+  private async callIRCAAPI(membershipId: string): Promise<IRCAMembershipData> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+
+    try {
+      const url = `${this.config.apiUrl}/api/v1/membership/${encodeURIComponent(membershipId)}`
+      
+      console.log(`[IRCA] Calling API: ${url}`)
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Hotel-Booking-System/1.0',
+        },
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      // Handle HTTP errors
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('NOT_FOUND: Membership ID not found')
+        }
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('UNAUTHORIZED: Invalid API credentials')
+        }
+        if (response.status === 429) {
+          throw new Error('RATE_LIMIT: Too many requests')
+        }
+        if (response.status >= 500) {
+          throw new Error(`SERVICE_ERROR: IRCA server error (${response.status})`)
+        }
+        throw new Error(`HTTP_ERROR: ${response.status} ${response.statusText}`)
+      }
+
+      // Parse response
+      const data = await response.json()
+
+      // Validate response structure
+      const validation = IRCAResponseSchema.safeParse(data)
+      if (!validation.success) {
+        console.error('[IRCA] Invalid API response:', validation.error)
+        throw new Error('VALIDATION_ERROR: Invalid API response format')
+      }
+
+      if (!validation.data.success || !validation.data.data) {
+        throw new Error(validation.data.error || 'NOT_FOUND: Membership not found')
+      }
+
+      // Update last verified timestamp
+      const membershipData: IRCAMembershipData = {
+        ...validation.data.data,
+        lastVerified: new Date().toISOString(),
+      }
+
+      console.log(`[IRCA] Successfully retrieved membership: ${membershipId}`)
+      return membershipData
+
+    } catch (error) {
+      clearTimeout(timeoutId)
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error(`TIMEOUT: API request timed out after ${this.config.timeout}ms`)
+        }
+        throw error
+      }
+
+      throw new Error('UNKNOWN_ERROR: Failed to call IRCA API')
+    }
   }
 }
 

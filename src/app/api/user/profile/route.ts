@@ -4,7 +4,8 @@
 // Returns complete user profile with role information
 
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/middleware/auth.utils'
+import { cookies } from 'next/headers'
+import { verifyAccessToken } from '@/lib/auth/jwt.service'
 import { getUserProfile } from '@/actions/auth/verify-otp.action'
 
 /**
@@ -14,10 +15,12 @@ import { getUserProfile } from '@/actions/auth/verify-otp.action'
  */
 export async function GET() {
   try {
-    // Get authenticated user from middleware context
-    const currentUser = await getCurrentUser()
-
-    if (!currentUser) {
+    // Get JWT from cookies
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('auth-session')
+    
+    if (!authCookie || !authCookie.value) {
+      console.log('❌ Profile API: No auth cookie found')
       return NextResponse.json(
         {
           success: false,
@@ -28,8 +31,25 @@ export async function GET() {
       )
     }
 
+    // Verify JWT token
+    const decoded = verifyAccessToken(authCookie.value)
+    
+    if (!decoded || !decoded.userId) {
+      console.log('❌ Profile API: Invalid or expired token')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+          message: 'Invalid or expired authentication token',
+        },
+        { status: 401 }
+      )
+    }
+
+    console.log('✅ Profile API: Token verified for user:', decoded.userId)
+
     // Fetch complete user profile from database
-    const userProfile = await getUserProfile(currentUser.userId)
+    const userProfile = await getUserProfile(decoded.userId)
 
     if (!userProfile) {
       return NextResponse.json(
@@ -47,6 +67,7 @@ export async function GET() {
       phone: userProfile.phone,
       roleId: userProfile.roleId,
       roleName: userProfile.role?.name,
+      profileCompleted: (userProfile as any).profileCompleted,
     })
 
     // Return complete user profile
@@ -57,6 +78,8 @@ export async function GET() {
         phone: userProfile.phone,
         name: userProfile.name,
         email: userProfile.email,
+        address: (userProfile as any).address,
+        profileCompleted: (userProfile as any).profileCompleted ?? false,
         role: {
           id: userProfile.role.id,
           name: userProfile.role.name,

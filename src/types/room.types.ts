@@ -4,7 +4,7 @@
 // TypeScript types for room management operations
 // Used across server actions, components, and API routes
 
-import type { RoomType, RoomInventory } from '@prisma/client'
+import type { RoomType as PrismaRoomType, RoomInventory } from '@prisma/client'
 
 // ==========================================
 // SERVER ACTION RESPONSE TYPES
@@ -50,7 +50,7 @@ export interface ValidationErrorResponse extends ServerActionResponse {
  * Room type with optional inventory relation
  * Used when fetching room types with their inventory
  */
-export type RoomTypeWithInventory = RoomType & {
+export type RoomTypeWithInventory = PrismaRoomType & {
   inventory?: RoomInventory[]
 }
 
@@ -58,19 +58,19 @@ export type RoomTypeWithInventory = RoomType & {
  * Room type with inventory count
  * Useful for displaying summary information
  */
-export type RoomTypeWithCount = RoomType & {
+export type RoomTypeWithCount = PrismaRoomType & {
   inventoryCount: number
 }
 
 /**
  * Response for single room type operations
  */
-export type RoomTypeResponse = ServerActionResponse<RoomType>
+export type RoomTypeResponse = ServerActionResponse<PrismaRoomType>
 
 /**
  * Response for multiple room types operations
  */
-export type RoomTypesResponse = ServerActionResponse<RoomType[]>
+export type RoomTypesResponse = ServerActionResponse<PrismaRoomType[]>
 
 /**
  * Response for room type with inventory
@@ -86,7 +86,7 @@ export type RoomTypeWithInventoryResponse = ServerActionResponse<RoomTypeWithInv
  * Used when fetching inventory with room type details
  */
 export type RoomInventoryWithType = RoomInventory & {
-  roomType: RoomType
+  roomType: PrismaRoomType
 }
 
 /**
@@ -247,7 +247,7 @@ export type RoomAvailabilityResponse = ServerActionResponse<RoomAvailabilityByDa
 /**
  * Omit Prisma's managed fields for create operations
  */
-export type RoomTypeCreateInput = Omit<RoomType, 'id' | 'createdAt' | 'updatedAt'>
+export type RoomTypeCreateInput = Omit<PrismaRoomType, 'id' | 'createdAt' | 'updatedAt'>
 
 /**
  * Omit Prisma's managed fields for inventory create operations
@@ -315,4 +315,63 @@ export interface UserSession {
   userId: string
   role: UserRole
   permissions: string[]
+}
+
+// ==========================================
+// ROOM CARD COMPONENT TYPES
+// ==========================================
+
+/**
+ * Room type structure for frontend display
+ * Extends Prisma RoomType with frontend-specific fields
+ */
+export interface RoomType {
+  id: string
+  slug?: string // URL-friendly identifier
+  name: string
+  description: string
+  longDescription?: string // Extended description for detail pages
+  pricePerNight: number
+  originalPrice?: number // For discount display
+  capacity: number
+  maxCapacity?: number // Maximum guest capacity
+  bedType?: string // Simple bed type string
+  bedTypes?: { type: string; count: number }[] // Detailed bed configuration
+  beds: string // e.g., "2 Queen Beds"
+  size: string // e.g., "250 sq ft"
+  sizeInSqFt?: number // Numeric size for filtering
+  images: string[]
+  thumbnailImage: string
+  amenities: string[]
+  rating: number
+  reviewCount: number
+  availability?: 'available' | 'limited' | 'unavailable' // Alias for availabilityStatus
+  availabilityStatus: 'available' | 'limited' | 'unavailable'
+  availableRooms: number
+  totalRooms?: number // Total number of this room type in the hotel
+  category?: string // Room category (standard, deluxe, suite)
+  view?: string // Room view description
+  floor?: string // Floor location
+  location?: {
+    view: string
+    floor: string
+  }
+  features?: string[]
+  policies?: {
+    checkIn: string
+    checkOut: string
+    cancellation: string
+  }
+}
+
+/**
+ * Room card component props
+ */
+export interface RoomCardProps {
+  room: RoomType
+  onBookNow?: (roomId: string) => void
+  onViewDetails?: (roomId: string) => void
+  showQuickView?: boolean
+  layout?: 'grid' | 'list'
+  className?: string
 }

@@ -24,6 +24,7 @@ import {
   type DeleteBookingResponse,
   type BookingStatsResponse,
 } from '@/types/booking.types'
+import { validateBookingRules } from '@/lib/validation/booking-rules-validator'
 
 // Note: These are placeholder implementations
 // Replace with actual Prisma database calls when Booking model is added to schema
@@ -143,14 +144,14 @@ function generateBookingNumber(): string {
 /**
  * Calculate booking amounts
  */
-function calculateAmounts(roomRate: number, nights: number) {
-  const totalAmount = roomRate * nights
-  const taxAmount = totalAmount * 0.1 // 10% tax
+function calculateAmounts(roomRate: number, nights: number, roomsBooked: number = 1) {
+  const subtotal = roomRate * nights * roomsBooked
+  const taxAmount = subtotal * 0.1 // 10% tax
   const discount = 0
-  const finalAmount = totalAmount + taxAmount - discount
+  const finalAmount = subtotal + taxAmount - discount
 
   return {
-    totalAmount,
+    totalAmount: subtotal,
     taxAmount,
     discount,
     finalAmount,
@@ -311,24 +312,92 @@ export async function createBookingAction(
   payload: CreateBookingPayload
 ): Promise<CreateBookingResponse> {
   try {
+    // ==========================================
+    // VALIDATION: Booking Rules
+    // ==========================================
+    
+    // Ensure we have required fields
+    if (!payload.guestId) {
+      return {
+        success: false,
+        error: 'Guest ID is required to create a booking',
+      }
+    }
+
+    if (!payload.roomId) {
+      return {
+        success: false,
+        error: 'Room ID is required to create a booking',
+      }
+    }
+
+    // Parse dates
+    const startDate = new Date(payload.checkInDate)
+    const endDate = new Date(payload.checkOutDate)
+    const roomsBooked = payload.roomsBooked || 1
+
+    // Validate all booking rules
+    const validation = await validateBookingRules(
+      payload.guestId,
+      payload.roomId, // This would be roomTypeId in real implementation
+      startDate,
+      endDate,
+      roomsBooked
+    )
+
+    // Check validation result
+    if (!validation.isValid) {
+      return {
+        success: false,
+        error: validation.errors.join(' '),
+        validationErrors: validation.errors,
+      }
+    }
+
+    // Log warnings (if any)
+    if (validation.warnings.length > 0) {
+      console.log('[createBookingAction] Warnings:', validation.warnings)
+    }
+
+    // ==========================================
+    // CALCULATE BOOKING DETAILS
+    // ==========================================
+    const nights = calculateNights(payload.checkInDate, payload.checkOutDate)
+    const roomRate = 150 // TODO: Get from room
+    const amounts = calculateAmounts(roomRate, nights, roomsBooked)
+
+    // Add deposit information for group bookings
+    let depositAmount = 0
+    let isDepositRequired = false
+    if (validation.requiresDeposit && validation.depositAmount) {
+      depositAmount = validation.depositAmount
+      isDepositRequired = true
+    }
+
+    // ==========================================
+    // CREATE BOOKING
+    // ==========================================
     // TODO: Replace with Prisma transaction
     // const booking = await prisma.booking.create({
     //   data: {
     //     bookingNumber: generateBookingNumber(),
-    //     guestId: payload.guestId,
-    //     roomId: payload.roomId,
-    //     checkInDate: payload.checkInDate,
-    //     checkOutDate: payload.checkOutDate,
-    //     // ... more fields
+    //     userId: payload.guestId,
+    //     roomTypeId: payload.roomId,
+    //     startDate: startDate,
+    //     endDate: endDate,
+    //     totalPrice: amounts.totalAmount,
+    //     roomsBooked: roomsBooked,
+    //     depositAmount: depositAmount,
+    //     isDepositPaid: false,
+    //     status: isDepositRequired ? BookingStatus.PENDING : BookingStatus.PROVISIONAL,
     //   },
-    //   include: { guest: true, room: true },
+    //   include: { 
+    //     user: { select: { name: true, email: true, phone: true } },
+    //     roomType: true 
+    //   },
     // })
 
     // Mock implementation
-    const nights = calculateNights(payload.checkInDate, payload.checkOutDate)
-    const roomRate = 150 // TODO: Get from room
-    const amounts = calculateAmounts(roomRate, nights)
-
     const newBooking: Booking = {
       id: `booking-${Date.now()}`,
       bookingNumber: generateBookingNumber(),
@@ -358,8 +427,11 @@ export async function createBookingAction(
       numberOfChildren: payload.numberOfChildren,
       roomRate,
       ...amounts,
-      status: BookingStatus.PENDING,
+      status: isDepositRequired ? BookingStatus.PENDING : BookingStatus.CONFIRMED,
       paymentStatus: PaymentStatus.PENDING,
+      depositAmount: depositAmount,
+      depositPaid: 0,
+      depositRequired: isDepositRequired,
       createdBy: 'current-user', // TODO: Get from session
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -368,10 +440,20 @@ export async function createBookingAction(
     // Add to mock data
     mockBookings.push(newBooking)
 
+    // Build success message
+    let successMessage = 'Booking created successfully'
+    if (validation.warnings.length > 0) {
+      successMessage += '. ' + validation.warnings.join(' ')
+    }
+    if (isDepositRequired) {
+      successMessage += ` A deposit of $${(depositAmount / 100).toFixed(2)} is required before confirmation.`
+    }
+
     return {
       success: true,
       data: newBooking,
-      message: 'Booking created successfully',
+      message: successMessage,
+      warnings: validation.warnings,
     }
   } catch (error: any) {
     console.error('[createBookingAction] Error:', error)

@@ -6,7 +6,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import AdminLayout from '@/components/layout/AdminLayout'
 import { Button } from '@/components/ui/button'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -43,10 +45,10 @@ interface ToastState {
 // ==========================================
 
 /**
- * Admin Rooms Page
+ * Admin Rooms Page Content
  * Displays room types in a table with CRUD operations
  */
-export default function AdminRoomsPage() {
+function AdminRoomsContent() {
   // ==========================================
   // STATE
   // ==========================================
@@ -194,37 +196,20 @@ export default function AdminRoomsPage() {
   // RENDER
   // ==========================================
 
-  return (
-    <ProtectedRoute allowedRoles={['ADMIN', 'SUPERADMIN']}>
-      <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Room Types</h1>
-            <p className="mt-2 text-gray-600">
-              Manage your hotel room types and inventory
-            </p>
-          </div>
-          <Button onClick={handleCreate} size="lg">
-            <svg
-              className="mr-2 h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Create Room Type
-          </Button>
-        </div>
-      </div>
+  const actions = (
+    <Button onClick={() => setIsCreateModalOpen(true)}>
+      <Plus className="mr-2 h-4 w-4" />
+      Add Room Type
+    </Button>
+  );
 
+  return (
+    <AdminLayout
+      title="Room Types"
+      subtitle="Manage your hotel room types and inventory"
+      actions={actions}
+    >
+      <div className="space-y-6">
       {/* Error State */}
       {error && (
         <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4">
@@ -480,6 +465,14 @@ export default function AdminRoomsPage() {
         />
       )}
       </div>
+    </AdminLayout>
+  );
+}
+
+export default function AdminRoomsPage() {
+  return (
+    <ProtectedRoute allowedRoles={['ADMIN', 'SUPERADMIN']}>
+      <AdminRoomsContent />
     </ProtectedRoute>
-  )
+  );
 }

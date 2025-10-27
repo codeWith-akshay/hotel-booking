@@ -5,7 +5,7 @@
 
 'use client'
 
-import { ReactNode, useEffect, useRef } from 'react'
+import React, { ReactNode, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 // ==========================================
@@ -16,6 +16,12 @@ interface DialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   children: ReactNode
+}
+
+interface DialogTriggerProps {
+  children: ReactNode
+  asChild?: boolean
+  onClick?: () => void
 }
 
 interface DialogContentProps {
@@ -78,6 +84,34 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
       {/* Content */}
       {children}
     </div>
+  )
+}
+
+// ==========================================
+// DIALOG TRIGGER COMPONENT
+// ==========================================
+
+/**
+ * Dialog Trigger Component
+ * Trigger element that opens the dialog
+ */
+export function DialogTrigger({ children, asChild, onClick }: DialogTriggerProps) {
+  if (asChild && React.isValidElement(children)) {
+    const childProps = children.props as { onClick?: (e: React.MouseEvent) => void };
+    return React.cloneElement(children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>, {
+      onClick: (e: React.MouseEvent) => {
+        onClick?.()
+        if (childProps.onClick) {
+          childProps.onClick(e)
+        }
+      }
+    })
+  }
+
+  return (
+    <button onClick={onClick}>
+      {children}
+    </button>
   )
 }
 

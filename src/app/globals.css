@@ -4,37 +4,53 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Tailwind v4 Theme Configuration */
+/* ==========================================
+   TAILWIND V4 THEME CONFIGURATION
+========================================== */
+
 @theme {
-  /* Color Palette with HSL variables */
+  /* ==========================================
+     LIGHT MODE COLORS (Default)
+  ========================================== */
+  
+  /* Base Colors */
   --color-background: 0 0% 100%;
   --color-foreground: 222.2 84% 4.9%;
 
+  /* Surface Colors */
   --color-card: 0 0% 100%;
   --color-card-foreground: 222.2 84% 4.9%;
-
   --color-popover: 0 0% 100%;
   --color-popover-foreground: 222.2 84% 4.9%;
 
-  --color-primary: 222.2 47.4% 11.2%;
+  /* Brand Colors */
+  --color-primary: 221.2 83.2% 53.3%; /* Blue-600 */
   --color-primary-foreground: 210 40% 98%;
+  --color-accent: 217.2 91.2% 59.8%; /* Blue-500 */
+  --color-accent-foreground: 222.2 47.4% 11.2%;
 
+  /* UI Colors */
   --color-secondary: 210 40% 96.1%;
   --color-secondary-foreground: 222.2 47.4% 11.2%;
-
   --color-muted: 210 40% 96.1%;
   --color-muted-foreground: 215.4 16.3% 46.9%;
 
-  --color-accent: 210 40% 96.1%;
-  --color-accent-foreground: 222.2 47.4% 11.2%;
-
+  /* Status Colors */
   --color-destructive: 0 84.2% 60.2%;
   --color-destructive-foreground: 210 40% 98%;
+  --color-success: 142.1 76.2% 36.3%;
+  --color-success-foreground: 0 0% 100%;
+  --color-warning: 32.1 94.6% 43.7%;
+  --color-warning-foreground: 0 0% 100%;
+  --color-info: 199.2 89.1% 48.4%;
+  --color-info-foreground: 0 0% 100%;
 
+  /* Form Colors */
   --color-border: 214.3 31.8% 91.4%;
   --color-input: 214.3 31.8% 91.4%;
-  --color-ring: 222.2 84% 4.9%;
+  --color-ring: 221.2 83.2% 53.3%;
 
+  /* Chart Colors */
   --color-chart-1: 12 76% 61%;
   --color-chart-2: 173 58% 39%;
   --color-chart-3: 197 37% 24%;
@@ -45,9 +61,61 @@
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
   --radius-sm: calc(0.5rem - 4px);
+
+  /* Transitions */
+  --transition-base: all 300ms ease-in-out;
+  --transition-fast: all 200ms ease-in-out;
+  --transition-slow: all 500ms ease-in-out;
 }
 
-/* Dark Mode Theme */
+/* ==========================================
+   DARK MODE THEME
+========================================== */
+
+.dark {
+  @theme {
+    /* Base Colors - Dark */
+    --color-background: 222.2 84% 4.9%; /* Gray-950 */
+    --color-foreground: 210 40% 98%;
+
+    /* Surface Colors - Dark */
+    --color-card: 222.2 47.4% 11.2%; /* Gray-900 */
+    --color-card-foreground: 210 40% 98%;
+    --color-popover: 222.2 47.4% 11.2%;
+    --color-popover-foreground: 210 40% 98%;
+
+    /* Brand Colors - Dark (Slightly brighter) */
+    --color-primary: 217.2 91.2% 59.8%; /* Blue-500 */
+    --color-primary-foreground: 222.2 47.4% 11.2%;
+    --color-accent: 217.2 91.2% 59.8%;
+    --color-accent-foreground: 222.2 47.4% 11.2%;
+
+    /* UI Colors - Dark */
+    --color-secondary: 217.2 32.6% 17.5%; /* Gray-800 */
+    --color-secondary-foreground: 210 40% 98%;
+    --color-muted: 217.2 32.6% 17.5%;
+    --color-muted-foreground: 215 20.2% 65.1%;
+
+    /* Status Colors - Dark (Higher contrast) */
+    --color-destructive: 0 62.8% 30.6%;
+    --color-destructive-foreground: 210 40% 98%;
+    --color-success: 142.1 70.6% 45.3%;
+    --color-success-foreground: 222.2 84% 4.9%;
+    --color-warning: 32.1 94.6% 43.7%;
+    --color-warning-foreground: 222.2 84% 4.9%;
+    --color-info: 199.2 89.1% 48.4%;
+    --color-info-foreground: 222.2 84% 4.9%;
+
+    /* Form Colors - Dark */
+    --color-border: 217.2 32.6% 17.5%;
+    --color-input: 217.2 32.6% 17.5%;
+    --color-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+/* ==========================================
+   GLOBAL STYLES
+========================================== */
 @media (prefers-color-scheme: dark) {
   @theme {
     --color-background: 222.2 84% 4.9%;
@@ -202,7 +270,426 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* ==========================================
+     ACCESSIBILITY IMPROVEMENTS
+     ========================================== */
+  
+  /* Screen reader only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Focus visible styles */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-blue-600 dark:outline-blue-400;
+  }
+
+  /* Remove focus outline for mouse users */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    * {
+      border-width: 2px;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* ==========================================
+     SMOOTH SCROLLING
+     ========================================== */
+  
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* ==========================================
+     CUSTOM ANIMATIONS
+     ========================================== */
+  
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes wave {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* ==========================================
+     TYPOGRAPHY ENHANCEMENTS
+     ========================================== */
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  p {
+    line-height: 1.6;
+  }
+
+  /* ==========================================
+     FORM ENHANCEMENTS
+     ========================================== */
+  
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    @apply transition-colors duration-200;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-blue-600 ring-offset-2 dark:ring-blue-400;
+  }
+
+  input:invalid,
+  textarea:invalid,
+  select:invalid {
+    @apply border-destructive;
+  }
+
+  /* ==========================================
+     BUTTON ENHANCEMENTS
+     ========================================== */
+  
+  button:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  button:not(:disabled):active {
+    transform: scale(0.98);
+  }
+
+  /* ==========================================
+     LINK ENHANCEMENTS
+     ========================================== */
+  
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  a:hover {
+    @apply text-blue-600 dark:text-blue-400;
+  }
+
+  /* ==========================================
+     SCROLLBAR STYLING
+     ========================================== */
+  
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.300') theme('colors.gray.100');
+  }
+
+  .dark * {
+    scrollbar-color: theme('colors.gray.600') theme('colors.gray.800');
   }
 }
+
+/* ==========================================
+   UTILITY CLASSES
+   ========================================== */
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-wave {
+    animation: wave 1.5s ease-in-out infinite;
+    background-size: 200% 100%;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.3s ease-out;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeInDown 0.3s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  /* Touch target sizing */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Focus ring utilities */
+  .focus-ring {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-400;
+  }
+
+  /* Responsive text sizes */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl lg:text-4xl;
+  }
+
+  /* Container spacing */
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Card shadows with hover */
+  .card-hover {
+    @apply transition-shadow duration-200 hover:shadow-lg;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-md;
+  }
+
+  /* Safe area insets for mobile */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* ==========================================
+     CUSTOM ANIMATIONS FOR BOOKING PAGE
+  ========================================== */
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInDown {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeInDown 0.6s ease-out;
+  }
+
+  .delay-1000 {
+    animation-delay: 1s;
+  }
+
+  .delay-2000 {
+    animation-delay: 2s;
+  }
+}
+
+

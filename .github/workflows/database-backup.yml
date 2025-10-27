@@ -1,0 +1,190 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+    # Monthly on 1st day at 4 AM UTC
+    - cron: '0 4 1 * *'
+  workflow_dispatch: # Manual trigger
+
+env:
+  BACKUP_TYPE: ${{ github.event.schedule == '0 3 * * 0' && 'weekly' || github.event.schedule == '0 4 1 * *' && 'monthly' || 'daily' }}
+
+jobs:
+  backup-database:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      
+      - name: Create backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          DATE_ONLY=$(date +%F)
+          BACKUP_FILE="hotel_db_${DATE_ONLY}.dump"
+          
+          # Extract connection details from DATABASE_URL
+          # Format: postgresql://user:password@host:port/database
+          DB_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
+          DB_PASS=$(echo $DATABASE_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
+          DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:/?]*\).*/\1/p')
+          DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+          DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
+          
+          # Default port if not specified
+          DB_PORT=${DB_PORT:-5432}
+          
+          echo "📦 Creating backup for database: $DB_NAME"
+          echo "🔗 Host: $DB_HOST:$DB_PORT"
+          
+          # Set password for pg_dump
+          export PGPASSWORD=$DB_PASS
+          
+          # Create backup with compression (custom format)
+          pg_dump -Fc --no-acl --no-owner \
+            -h $DB_HOST \
+            -p $DB_PORT \
+            -U $DB_USER \
+            -d $DB_NAME \
+            -f $BACKUP_FILE
+          
+          # Unset password
+          unset PGPASSWORD
+          
+          # Get backup size
+          BACKUP_SIZE=$(du -h $BACKUP_FILE | cut -f1)
+          
+          echo "BACKUP_FILE=${BACKUP_FILE}" >> $GITHUB_ENV
+          echo "BACKUP_SIZE=${BACKUP_SIZE}" >> $GITHUB_ENV
+          echo "✅ Backup created: ${BACKUP_FILE} (${BACKUP_SIZE})"
+      
+      - name: Upload to AWS S3
+        if: ${{ secrets.AWS_S3_BUCKET != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+        run: |
+          # Install AWS CLI
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          sudo ./aws/install
+          
+          # Determine backup folder based on type
+          BACKUP_FOLDER="${{ env.BACKUP_TYPE }}"
+          
+          # Upload to S3
+          aws s3 cp ${{ env.BACKUP_FILE }} s3://$AWS_S3_BUCKET/backups/$BACKUP_FOLDER/ \
+            --region $AWS_REGION \
+            --storage-class STANDARD_IA \
+            --metadata "backup-type=$BACKUP_FOLDER,timestamp=$(date -Iseconds)"
+          
+          echo "✅ Backup uploaded to S3: s3://$AWS_S3_BUCKET/backups/$BACKUP_FOLDER/"
+      
+      - name: Upload to Google Cloud Storage
+        if: ${{ secrets.GCS_BUCKET != '' }}
+        env:
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+          GCS_SERVICE_ACCOUNT_KEY: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
+        run: |
+          # Install gcloud CLI
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+          
+          # Authenticate
+          echo "$GCS_SERVICE_ACCOUNT_KEY" | base64 -d > gcs-key.json
+          gcloud auth activate-service-account --key-file=gcs-key.json
+          
+          # Determine backup folder based on type
+          BACKUP_FOLDER="${{ env.BACKUP_TYPE }}"
+          
+          # Upload to GCS
+          gsutil cp ${{ env.BACKUP_FILE }} gs://$GCS_BUCKET/backups/$BACKUP_FOLDER/
+          
+          echo "✅ Backup uploaded to GCS: gs://$GCS_BUCKET/backups/$BACKUP_FOLDER/"
+      
+      - name: Apply retention policy (AWS S3)
+        if: ${{ secrets.AWS_S3_BUCKET != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+        run: |
+          echo "🗂️ Applying retention policy..."
+          
+          # Keep 7 daily backups
+          echo "Cleaning daily backups (keep last 7)..."
+          aws s3 ls s3://$AWS_S3_BUCKET/backups/daily/ | sort -r | tail -n +8 | awk '{print $4}' | while read file; do
+            if [ ! -z "$file" ]; then
+              aws s3 rm s3://$AWS_S3_BUCKET/backups/daily/$file --region $AWS_REGION
+              echo "🗑️ Deleted old daily backup: $file"
+            fi
+          done
+          
+          # Keep 4 weekly backups
+          echo "Cleaning weekly backups (keep last 4)..."
+          aws s3 ls s3://$AWS_S3_BUCKET/backups/weekly/ | sort -r | tail -n +5 | awk '{print $4}' | while read file; do
+            if [ ! -z "$file" ]; then
+              aws s3 rm s3://$AWS_S3_BUCKET/backups/weekly/$file --region $AWS_REGION
+              echo "🗑️ Deleted old weekly backup: $file"
+            fi
+          done
+          
+          # Keep 6 monthly backups
+          echo "Cleaning monthly backups (keep last 6)..."
+          aws s3 ls s3://$AWS_S3_BUCKET/backups/monthly/ | sort -r | tail -n +7 | awk '{print $4}' | while read file; do
+            if [ ! -z "$file" ]; then
+              aws s3 rm s3://$AWS_S3_BUCKET/backups/monthly/$file --region $AWS_REGION
+              echo "🗑️ Deleted old monthly backup: $file"
+            fi
+          done
+          
+          echo "✅ Retention policy applied (7 daily, 4 weekly, 6 monthly)"
+      
+      - name: Verify backup integrity
+        run: |
+          echo "🔍 Verifying backup integrity..."
+          
+          # Test backup can be read (pg_restore -l lists contents without restoring)
+          export PGPASSWORD="dummy" # pg_restore needs a password set
+          pg_restore -l ${{ env.BACKUP_FILE }} > /dev/null 2>&1
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Backup integrity verified"
+          else
+            echo "❌ Backup integrity check failed"
+            exit 1
+          fi
+      
+      - name: Backup summary
+        if: success()
+        run: |
+          echo "📋 Backup Summary"
+          echo "================="
+          echo "📦 File: ${{ env.BACKUP_FILE }}"
+          echo "� Size: ${{ env.BACKUP_SIZE }}"
+          echo "🏷️ Type: ${{ env.BACKUP_TYPE }}"
+          echo "⏰ Time: $(date -Iseconds)"
+          echo "✅ Status: Success"
+      
+      - name: Notify on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: '� Database backup failed! Check workflow logs.'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

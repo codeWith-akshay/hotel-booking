@@ -26,6 +26,8 @@ export interface LayoutProps {
   
   /** Layout configuration */
   config?: {
+    /** Show/hide header */
+    showHeader?: boolean
     /** Show/hide sidebar */
     showSidebar?: boolean
     /** Show/hide footer */
@@ -96,6 +98,7 @@ export default function Layout({
   contentClassName = '',
 }: LayoutProps) {
   const {
+    showHeader = true,
     showSidebar = true,
     showFooter = true,
     headerNavLinks,
@@ -167,19 +170,21 @@ export default function Layout({
       {/* ==========================================
           HEADER
       ========================================== */}
-      <Header
-        user={user}
-        navLinks={effectiveHeaderLinks}
-        notificationsCount={notificationsCount}
-        showNotifications={true}
-        showSearch={showSearch}
-        {...(searchPlaceholder && { searchPlaceholder })}
-        onLogout={onLogout}
-        {...(onSearch && { onSearch })}
-        {...(onNotificationClick && { onNotificationClick })}
-        showSidebarToggle={showSidebar}
-        onSidebarToggle={handleSidebarToggle}
-      />
+      {showHeader && (
+        <Header
+          user={user}
+          navLinks={effectiveHeaderLinks}
+          notificationsCount={notificationsCount}
+          showNotifications={true}
+          showSearch={showSearch}
+          {...(searchPlaceholder && { searchPlaceholder })}
+          onLogout={onLogout}
+          {...(onSearch && { onSearch })}
+          {...(onNotificationClick && { onNotificationClick })}
+          showSidebarToggle={showSidebar}
+          onSidebarToggle={handleSidebarToggle}
+        />
+      )}
 
       {/* ==========================================
           MAIN LAYOUT: Sidebar + Content

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { Button, Input, Alert } from '@/components/ui'
 import { isValidPhoneNumber, formatPhoneNumber } from '@/lib/utils'
@@ -12,6 +12,8 @@ import { isValidPhoneNumber, formatPhoneNumber } from '@/lib/utils'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/dashboard'
   const setPendingPhone = useAuthStore((state) => state.setPendingPhone)
 
   // Form state
@@ -77,9 +79,9 @@ export default function LoginPage() {
         // Show success message briefly
         setSuccess(`OTP sent to ${formatPhoneNumber(phone)}!`)
 
-        // Redirect to OTP verification page
+        // Redirect to OTP verification page with redirect URL
         setTimeout(() => {
-          router.push('/verify-otp')
+          router.push(`/verify-otp?redirect=${encodeURIComponent(redirectUrl)}`)
         }, 1500)
       } else {
         // Handle error
@@ -98,7 +100,7 @@ export default function LoginPage() {
   // ==========================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
@@ -190,7 +192,7 @@ export default function LoginPage() {
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
               <div className="flex gap-3">
                 <svg
-                  className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                  className="w-5 h-5 text-blue-600 shrink-0 mt-0.5"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >

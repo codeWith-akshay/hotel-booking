@@ -6,6 +6,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import AdminLayout from '@/components/layout/AdminLayout'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Toast } from '@/components/ui/Toast'
@@ -15,6 +16,7 @@ import { BulkInventoryForm } from '@/components/forms/BulkInventoryForm'
 import { getRoomTypes } from '@/actions/rooms/room-type.action'
 import { getInventoryByRoomType } from '@/actions/rooms/room-inventory.action'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import { Plus, Calendar, Table as TableIcon, Grid } from 'lucide-react'
 import type { RoomType, RoomInventory } from '@prisma/client'
 
 // ==========================================
@@ -33,14 +35,38 @@ interface ToastState {
 const ITEMS_PER_PAGE = 30 // Show 30 days at a time
 
 // ==========================================
-// ADMIN INVENTORY PAGE COMPONENT
+// HELPERS
 // ==========================================
 
 /**
- * Admin Inventory Page
- * Manage room inventory with date-based pagination
+ * Get date range text
  */
-export default function AdminInventoryPage() {
+const getDateRangeText = (inventory: RoomInventory[]) => {
+  if (inventory.length === 0) return ''
+
+  const firstInventory = inventory[0]
+  const lastInventory = inventory[inventory.length - 1]
+  
+  if (!firstInventory || !lastInventory) return ''
+
+  const firstDate = new Date(firstInventory.date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+  const lastDate = new Date(lastInventory.date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
+  return `${firstDate} - ${lastDate}`
+}
+
+// ==========================================
+// ADMIN INVENTORY CONTENT COMPONENT
+// ==========================================
+
+function AdminInventoryContent() {
   // ==========================================
   // STATE
   // ==========================================
@@ -203,11 +229,21 @@ export default function AdminInventoryPage() {
   }
 
   /**
+   * Handle bulk update success
+   */
+  const handleBulkUpdateSuccess = () => {
+    showToast('Inventory updated successfully', 'success')
+    fetchInventory()
+    setIsBulkModalOpen(false)
+  }
+
+  /**
    * Handle bulk creation success
    */
   const handleBulkSuccess = () => {
     showToast('Bulk inventory created successfully', 'success')
     fetchInventory()
+    setIsBulkModalOpen(false)
   }
 
   /**
@@ -218,33 +254,21 @@ export default function AdminInventoryPage() {
   }
 
   /**
-   * Get date range text
+   * Close toast notification
    */
-  const getDateRangeText = () => {
-    if (inventory.length === 0) return ''
-
-    const firstInventory = inventory[0]
-    const lastInventory = inventory[inventory.length - 1]
-    
-    if (!firstInventory || !lastInventory) return ''
-
-    const firstDate = new Date(firstInventory.date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })
-    const lastDate = new Date(lastInventory.date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
-
-    return `${firstDate} - ${lastDate}`
+  const handleCloseToast = () => {
+    setToast(null)
   }
 
-  // Auto-detect view mode based on screen size
+  // ==========================================
+  // RESPONSIVE VIEW MODE
+  // ==========================================
+
+  // Automatically switch to cards on mobile
   useEffect(() => {
     const handleResize = () => {
-      setViewMode(window.innerWidth < 768 ? 'cards' : 'table')
+      const isMobile = window.innerWidth < 768
+      setViewMode(isMobile ? 'cards' : 'table')
     }
 
     handleResize() // Set initial value
@@ -256,9 +280,29 @@ export default function AdminInventoryPage() {
   // RENDER
   // ==========================================
 
+  const actions = (
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+      >
+        {viewMode === 'table' ? <Grid className="h-4 w-4 mr-2" /> : <TableIcon className="h-4 w-4 mr-2" />}
+        {viewMode === 'table' ? 'Cards View' : 'Table View'}
+      </Button>
+      <Button onClick={() => setIsBulkModalOpen(true)}>
+        <Plus className="mr-2 h-4 w-4" />
+        Bulk Update
+      </Button>
+    </div>
+  );
+
   return (
-    <ProtectedRoute allowedRoles={['ADMIN', 'SUPERADMIN']}>
-      <div className="container mx-auto px-4 py-8">
+    <AdminLayout
+      title="Room Inventory"
+      subtitle={selectedRoomType ? `Manage availability for ${selectedRoomType.name}` : 'Manage room availability across dates'}
+      actions={actions}
+    >
+      <div className="space-y-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col gap-4">
@@ -426,7 +470,7 @@ export default function AdminInventoryPage() {
           {/* Date Range Info */}
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              Showing {inventory.length} day{inventory.length !== 1 ? 's' : ''}: {getDateRangeText()}
+              Showing {inventory.length} day{inventory.length !== 1 ? 's' : ''}: {getDateRangeText(inventory)}
             </p>
           </div>
 
@@ -570,6 +614,14 @@ export default function AdminInventoryPage() {
         />
       )}
       </div>
+    </AdminLayout>
+  );
+}
+
+export default function AdminInventoryPage() {
+  return (
+    <ProtectedRoute allowedRoles={['ADMIN', 'SUPERADMIN']}>
+      <AdminInventoryContent />
     </ProtectedRoute>
-  )
+  );
 }

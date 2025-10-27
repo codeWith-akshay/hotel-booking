@@ -4,9 +4,6 @@
 // Role-based access control for room management operations
 // Ensures only Admin and SuperAdmin can perform CRUD operations
 
-'use server'
-
-import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import type { UserRole, UserSession } from '@/types/room.types'
 
@@ -15,16 +12,20 @@ import type { UserRole, UserSession } from '@/types/room.types'
 // ==========================================
 
 /**
- * Get current user session from cookies
+ * Get current user session from request headers
  * Returns user information including role and permissions
  * 
  * @returns User session object or null if not authenticated
  */
 export async function getCurrentUserSession(): Promise<UserSession | null> {
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get('userId')?.value
-
+    // In a server action, we can't directly access client-side Zustand store
+    // We need to get the user ID from the request context or headers
+    // For now, we'll get it from the auth header or a different approach
+    
+    // Try to get from process.env or global context set by middleware
+    const userId = (globalThis as any).__userId as string | undefined;
+    
     if (!userId) {
       return null
     }

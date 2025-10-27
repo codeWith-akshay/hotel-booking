@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { Button, Alert } from '@/components/ui'
 import {
@@ -17,6 +17,8 @@ import {
 
 export default function VerifyOTPPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || null
   const {
     pendingPhone,
     otpExpiresAt,
@@ -183,6 +185,8 @@ export default function VerifyOTPPage() {
                 phone: profileData.data.phone,
                 name: profileData.data.name || 'User',
                 email: profileData.data.email,
+                address: profileData.data.address,
+                profileCompleted: profileData.data.profileCompleted ?? false,
                 role: profileData.data.role?.name || 'MEMBER',
                 roleId: profileData.data.roleId,
               }
@@ -196,6 +200,7 @@ export default function VerifyOTPPage() {
                 phone: data.data.phone,
                 name: 'User',
                 email: null,
+                profileCompleted: false,
                 role: 'MEMBER', // Fallback role
                 roleId: '',
               }
@@ -208,6 +213,7 @@ export default function VerifyOTPPage() {
               phone: data.data.phone,
               name: 'User',
               email: null,
+              profileCompleted: false,
               role: 'MEMBER', // Fallback role
               roleId: '',
             }
@@ -221,6 +227,7 @@ export default function VerifyOTPPage() {
             phone: data.data.phone,
             name: 'User',
             email: null,
+            profileCompleted: false,
             role: 'MEMBER', // Fallback role
             roleId: '',
           }
@@ -230,9 +237,15 @@ export default function VerifyOTPPage() {
         clearPendingPhone()
         setSuccess('Login successful! Redirecting...')
 
-        // Redirect to appropriate dashboard based on role
+        // Redirect to appropriate dashboard based on role or redirect URL
         setTimeout(() => {
-          // Use the finalUser variable that has the correct role
+          // If there's a redirect URL, use it
+          if (redirectUrl) {
+            router.push(redirectUrl)
+            return
+          }
+          
+          // Otherwise, use the finalUser variable that has the correct role
           console.log('🚀 Redirecting user with role:', finalUser?.role)
           
           if (finalUser?.role === 'SUPERADMIN') {
@@ -317,7 +330,7 @@ export default function VerifyOTPPage() {
   // ==========================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
@@ -462,7 +475,7 @@ export default function VerifyOTPPage() {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex gap-3">
               <svg
-                className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5"
+                className="w-5 h-5 text-gray-600 shrink-0 mt-0.5"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >

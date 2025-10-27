@@ -28,6 +28,20 @@ package-lock.json
 *.lcov
 .nyc_output
 
+# Jest
+/coverage/
+/.jest-cache/
+
+# Cypress
+/cypress/videos/
+/cypress/screenshots/
+/cypress/downloads/
+.cypress-cache/
+
+# Test artifacts
+test-results/
+playwright-report/
+
 # ==========================================
 # NEXT.JS
 # ==========================================

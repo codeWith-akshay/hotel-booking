@@ -25,12 +25,7 @@ export function BasicBookingExample() {
 
   // Set room type on mount
   useEffect(() => {
-    setRoomType({
-      id: "clx123456", // Replace with actual room type ID
-      name: "Deluxe Room",
-      pricePerNight: 15000, // $150.00 in cents
-      totalRooms: 20,
-    });
+    setRoomType("clx123456"); // Set room type ID
   }, [setRoomType]);
 
   return (
@@ -40,10 +35,8 @@ export function BasicBookingExample() {
       </h1>
 
       <BookingCalendar
-        roomTypeId="clx123456"
         selectedRange={dateRange}
         onSelect={setDateRange}
-        showAvailability={true}
         numberOfMonths={2}
       />
 
@@ -71,7 +64,7 @@ export function MultiRoomTypeExample() {
   const {
     dateRange,
     setDateRange,
-    selectedRoomType,
+    selectedRoomTypeId,
     setRoomType,
   } = useBookingStore();
 
@@ -111,9 +104,9 @@ export function MultiRoomTypeExample() {
           {roomTypes.map((room) => (
             <button
               key={room.id}
-              onClick={() => setRoomType(room)}
+              onClick={() => setRoomType(room.id)}
               className={`rounded-xl border-2 p-4 text-left transition-all ${
-                selectedRoomType?.id === room.id
+                selectedRoomTypeId === room.id
                   ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
                   : "border-gray-200 bg-white hover:border-blue-300"
               }`}
@@ -131,16 +124,14 @@ export function MultiRoomTypeExample() {
       </div>
 
       {/* Calendar */}
-      {selectedRoomType && (
+      {selectedRoomTypeId && (
         <div>
           <h2 className="mb-4 text-lg font-semibold text-gray-800">
             2. Select Dates
           </h2>
           <BookingCalendar
-            roomTypeId={selectedRoomType.id}
             selectedRange={dateRange}
             onSelect={setDateRange}
-            showAvailability={true}
             numberOfMonths={2}
           />
         </div>
@@ -180,10 +171,8 @@ export function ResponsiveBookingExample() {
         </div>
 
         <BookingCalendar
-          roomTypeId="clx123456"
           selectedRange={dateRange}
           onSelect={setDateRange}
-          showAvailability={true}
           numberOfMonths={isMobile ? 1 : 2} // Dynamic based on screen size
         />
       </div>
@@ -195,27 +184,34 @@ export function ResponsiveBookingExample() {
 // EXAMPLE 4: With Price Calculator
 // ==========================================
 
-export function BookingWithPriceExample() {
+export function PriceSummaryExample() {
   const {
     dateRange,
     setDateRange,
-    selectedRoomType,
     setRoomType,
-    getTotalNights,
-    getTotalPrice,
   } = useBookingStore();
 
+  const roomTypeExample = {
+    id: "clx123456",
+    name: "Deluxe Room",
+    pricePerNight: 15000,
+    totalRooms: 20,
+  };
+
   useEffect(() => {
-    setRoomType({
-      id: "clx123456",
-      name: "Deluxe Room",
-      pricePerNight: 15000,
-      totalRooms: 20,
-    });
+    setRoomType("clx123456");
   }, [setRoomType]);
 
-  const totalNights = getTotalNights();
-  const totalPrice = getTotalPrice();
+  const calculateTotalNights = () => {
+    if (dateRange.from && dateRange.to) {
+      const diffTime = Math.abs(dateRange.to.getTime() - dateRange.from.getTime());
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    return 0;
+  };
+
+  const totalNights = calculateTotalNights();
+  const totalPrice = totalNights * roomTypeExample.pricePerNight;
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -226,10 +222,8 @@ export function BookingWithPriceExample() {
             Select Your Dates
           </h2>
           <BookingCalendar
-            roomTypeId={selectedRoomType?.id || undefined}
             selectedRange={dateRange}
             onSelect={setDateRange}
-            showAvailability={true}
             numberOfMonths={2}
           />
         </div>
@@ -242,14 +236,14 @@ export function BookingWithPriceExample() {
                 Booking Summary
               </h3>
 
-              {selectedRoomType && (
+              {roomTypeExample && (
                 <>
                   <div className="mb-4 rounded-lg bg-gray-50 p-3">
                     <p className="text-sm font-medium text-gray-600">
                       Room Type
                     </p>
                     <p className="mt-1 text-lg font-bold text-gray-900">
-                      {selectedRoomType.name}
+                      {roomTypeExample.name}
                     </p>
                   </div>
 
@@ -258,7 +252,7 @@ export function BookingWithPriceExample() {
                       <div className="space-y-3 border-t border-gray-200 pt-4">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">
-                            ${(selectedRoomType.pricePerNight / 100).toFixed(2)}{" "}
+                            ${(roomTypeExample.pricePerNight / 100).toFixed(2)}{" "}
                             × {totalNights} nights
                           </span>
                           <span className="font-medium text-gray-900">
@@ -346,10 +340,8 @@ export function BookingWithValidationExample() {
       )}
 
       <BookingCalendar
-        roomTypeId="clx123456"
         selectedRange={dateRange}
         onSelect={handleDateSelect}
-        showAvailability={true}
         numberOfMonths={2}
         minDate={new Date()}
         maxDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // 90 days ahead
@@ -369,7 +361,7 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
       {/* Choose one of the examples above */}
-      <BookingWithPriceExample />
+      <PriceSummaryExample />
     </div>
   );
 }

@@ -338,20 +338,23 @@ export default function Sidebar({
         rel={link.external ? 'noopener noreferrer' : undefined}
         onClick={(e) => handleLinkClick(link, e)}
         className={`
-          flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg transition-all
-          ${level > 0 ? 'pl-12' : ''}
+          flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all duration-200
+          ${level > 0 ? 'pl-12 ml-2' : ''}
           ${
             isActive
-              ? 'bg-blue-50 text-blue-700 font-medium'
-              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              ? 'bg-blue-50 text-blue-700 font-medium shadow-sm'
+              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:shadow-sm'
           }
           ${link.className || ''}
+          focus-ring touch-target
         `}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={link.external ? `${link.label} (opens in new tab)` : link.label}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Icon */}
           {link.icon && (
-            <span className={`shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
+            <span className={`shrink-0 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} aria-hidden="true">
               {link.icon}
             </span>
           )}
@@ -365,9 +368,10 @@ export default function Sidebar({
           {link.badge && (isOpen || !compact) && (
             <span
               className={`
-                ml-auto px-2 py-0.5 text-xs font-semibold rounded-full shrink-0
+                ml-auto px-2 py-1 text-xs font-semibold rounded-full shrink-0 shadow-sm
                 ${getBadgeColors(link.badgeVariant || 'primary')}
               `}
+              aria-label={`${link.badge} items`}
             >
               {link.badge}
             </span>
@@ -380,6 +384,7 @@ export default function Sidebar({
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -399,15 +404,18 @@ export default function Sidebar({
               e.stopPropagation()
               toggleSubmenu(link.label)
             }}
-            className="p-1 hover:bg-gray-200 rounded transition-colors shrink-0"
+            className="p-1 hover:bg-gray-200 rounded-lg transition-all duration-200 shrink-0 focus-ring"
+            aria-label={isExpanded ? `Collapse ${link.label} submenu` : `Expand ${link.label} submenu`}
+            aria-expanded={isExpanded}
           >
             <svg
-              className={`w-4 h-4 transition-transform ${
+              className={`w-4 h-4 transition-transform duration-200 ${
                 isExpanded ? 'rotate-180' : ''
               }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -429,13 +437,13 @@ export default function Sidebar({
 
           {/* Active indicator */}
           {isActive && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full shadow-lg" aria-hidden="true" />
           )}
         </div>
 
         {/* Submenu (Children) */}
         {hasChildren && isExpanded && (isOpen || !compact) && (
-          <div className="mt-1 space-y-1">
+          <div className="mt-1 space-y-1 animate-fade-in-up">
             {link.children!.map((child) => renderLink(child, level + 1))}
           </div>
         )}
@@ -450,8 +458,9 @@ export default function Sidebar({
       ========================================== */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
           onClick={() => onToggle?.(false)}
+          aria-hidden="true"
         />
       )}
 
@@ -461,17 +470,19 @@ export default function Sidebar({
       <aside
         className={`
           fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-gray-200 z-50
-          transition-all duration-300 ease-in-out
+          transition-all duration-300 ease-in-out shadow-lg lg:shadow-none
           ${isOpen ? width : `w-0 lg:${collapsedWidth}`}
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${showOnDesktop ? '' : 'hidden'}
         `}
+        role="navigation"
+        aria-label="Sidebar navigation"
       >
         <div className="h-full flex flex-col overflow-hidden">
           {/* ==========================================
               SIDEBAR HEADER
           ========================================== */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-linear-to-r from-gray-50 to-white">
             {(isOpen || !compact) && (
               <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
             )}
@@ -480,16 +491,18 @@ export default function Sidebar({
             <button
               onClick={() => onToggle?.(!isOpen)}
               className={`
-                p-2 rounded-md hover:bg-gray-100 transition-colors
+                p-2 rounded-lg hover:bg-gray-100 focus-ring transition-all duration-200 touch-target
                 ${(isOpen || !compact) ? '' : 'mx-auto'}
               `}
               aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+              aria-expanded={isOpen}
             >
               <svg
                 className="w-5 h-5 text-gray-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 {isOpen ? (
                   <path

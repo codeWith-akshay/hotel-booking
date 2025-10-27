@@ -18,24 +18,80 @@ enum RoleName {
   SUPERADMIN
 }
 
+// Booking Status Enum
+enum BookingStatus {
+  PROVISIONAL
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  COMPLETED
+  CANCELLED
+}
+
+// Guest Type Enum for Booking Rules
+enum GuestType {
+  REGULAR
+  VIP
+  CORPORATE
+}
+
+// Waitlist Status Enum
+enum WaitlistStatus {
+  PENDING
+  NOTIFIED
+  CONVERTED
+  EXPIRED
+}
+
+// Payment Status Enum
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// VIP Status Enum for User Profile
+enum VipStatus {
+  NONE
+  VIP
+  STAFF
+}
+
 // ==========================================
 // AUTHENTICATION MODELS
 // ==========================================
 
 // User Model - Core authentication and user data
 model User {
-  id                String   @id @default(cuid())
-  phone             String   @unique
+  id                String     @id @default(cuid())
+  phone             String     @unique
   name              String
-  email             String?  @unique
+  email             String?    @unique
   roleId            String
-  ircaMembershipId  String?  @unique
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  ircaMembershipId  String?    @unique
+  
+  // Profile fields
+  address           String?
+  vipStatus         VipStatus  @default(NONE)
+  profilePicture    String?
+  profileCompleted  Boolean    @default(false)
+  termsAccepted     Boolean    @default(false)
+  
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   // Relations
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
   otps OTP[]
+  bookings Booking[]
+  waitlistEntries Waitlist[]
+  payments Payment[]
+  auditLogs BookingAuditLog[] @relation("AdminAuditLogs")
+  bulkMessages BulkMessage[] @relation("BulkMessages")
+  invoices Invoice[]
+  notifications Notification[]
 
   // Indexes for performance
   @@index([phone])
@@ -108,6 +164,12 @@ model RoomType {
   // Relations
   /// One-to-many: Each room type has daily inventory records
   inventory RoomInventory[]
+  /// One-to-many: Each room type can have multiple bookings
+  bookings Booking[]
+  /// One-to-many: Each room type can have multiple waitlist entries
+  waitlistEntries Waitlist[]
+  /// One-to-many: Each room type can have special day rules
+  specialDays SpecialDay[]
 
   // Indexes for performance
   @@index([name])
@@ -145,7 +207,798 @@ model RoomInventory {
   @@index([roomTypeId])
   @@index([date])
   
+  // Composite index for date range queries (most critical for booking system)
+  @@index([roomTypeId, date, availableRooms]) // Optimize availability checks
+  
   // Composite unique constraint: One inventory record per room type per date
   @@unique([roomTypeId, date])
   @@map("room_inventory")
 }
+
+// ==========================================
+// BOOKING MODELS
+// ==========================================
+
+/// Booking Model - Manages hotel room reservations
+/// Tracks customer bookings with pricing, status, and date management
+model Booking {
+  id          String        @id @default(cuid())
+  
+  /// Foreign key to User who made the booking
+  userId      String
+  
+  /// Foreign key to RoomType being booked
+  roomTypeId  String
+  
+  /// Check-in date
+  startDate   DateTime
+  
+  /// Check-out date
+  endDate     DateTime
+  
+  /// Current status of the booking
+  status      BookingStatus @default(PROVISIONAL)
+  
+  /// Total price for the entire stay in smallest currency unit (cents)
+  /// Calculated as: (endDate - startDate) * roomType.pricePerNight
+  /// Using Int for SQLite compatibility (price in cents)
+  totalPrice  Int
+  
+  /// Number of rooms booked (for group booking support)
+  roomsBooked Int           @default(1)
+  
+  /// Deposit amount required for group bookings (in cents)
+  depositAmount Int?
+  
+  /// Whether the required deposit has been paid
+  isDepositPaid Boolean     @default(false)
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  /// Many-to-one: Each booking belongs to one user
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// Many-to-one: Each booking is for one room type
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  /// One-to-many: Each booking can have multiple payments
+  payments Payment[]
+  /// One-to-one: Optional idempotency key for this booking (concurrency safety)
+  idempotencyKey IdempotencyKey?
+  /// One-to-many: Each booking can have multiple audit log entries
+  auditLogs BookingAuditLog[]
+  /// One-to-one: Each booking can have one invoice
+  invoice Invoice?
+
+  // Indexes for performance and queries
+  @@index([userId])
+  @@index([roomTypeId])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+  @@index([createdAt])
+  @@index([roomsBooked])
+  @@index([isDepositPaid])
+  
+  // Composite indexes for hot queries (optimized for common filters)
+  @@index([status, startDate, endDate]) // Filter bookings by status + date range
+  @@index([userId, status, createdAt]) // User's bookings filtered by status + sorted
+  @@index([roomTypeId, startDate, endDate]) // Room availability checks
+  @@index([startDate, endDate, roomTypeId, status]) // Full availability query optimization
+  
+  @@map("bookings")
+}
+
+/// BookingRules Model - Configuration for booking policies
+/// Implements "3-2-1 rule" system for different guest types
+/// Controls booking windows and advance notice requirements
+model BookingRules {
+  id              String    @id @default(cuid())
+  
+  /// Type of guest this rule applies to
+  guestType       GuestType @unique
+  
+  /// Maximum days in advance a booking can be made
+  /// Example: 90 days for Regular guests, 365 days for VIP
+  maxDaysAdvance  Int
+  
+  /// Minimum days notice required for booking
+  /// Example: 1 day for Regular, 0 days for VIP
+  minDaysNotice   Int
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Indexes
+  @@index([guestType])
+  @@map("booking_rules")
+}
+
+/// Waitlist Model - Manages waitlist for room availability
+/// When desired rooms are unavailable, users can join a waitlist
+/// Admins can notify users when rooms become available
+model Waitlist {
+  id           String        @id @default(cuid())
+  
+  /// Foreign key to User who joined the waitlist
+  userId       String
+  
+  /// Foreign key to specific RoomType (optional - could be any room)
+  roomTypeId   String?
+  
+  /// Preferred check-in date
+  startDate    DateTime
+  
+  /// Preferred check-out date
+  endDate      DateTime
+  
+  /// Number of guests for this waitlist entry
+  guests       Int           @default(1)
+  
+  /// Guest type for booking rules validation
+  guestType    GuestType     @default(REGULAR)
+  
+  /// Optional deposit amount in smallest currency unit (cents)
+  /// Can be used to secure waitlist position
+  deposit      Int           @default(0)
+  
+  /// Current status of the waitlist entry
+  status       WaitlistStatus @default(PENDING)
+  
+  /// Optional notes from the user about preferences
+  notes        String?
+  
+  /// When the user was notified (if status is NOTIFIED)
+  notifiedAt   DateTime?
+  
+  /// When the waitlist entry expires (auto-calculated)
+  expiresAt    DateTime?
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  /// Many-to-one: Each waitlist entry belongs to one user
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Many-to-one: Each waitlist entry is for one room type (optional)
+  roomType RoomType? @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance and queries
+  @@index([userId])
+  @@index([roomTypeId])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+  @@index([createdAt])
+  @@index([expiresAt])
+  
+  // Composite indexes for hot queries
+  @@index([status, startDate, endDate]) // Active waitlist entries by date range
+  @@index([roomTypeId, status, createdAt]) // Room-specific waitlist queue
+  
+  @@map("waitlist")
+}
+
+// ==========================================
+// PAYMENT MODELS
+// ==========================================
+
+/// Payment Model - Manages payment transactions for bookings
+/// Supports multiple payment providers (Stripe, Razorpay, PayU, Offline)
+/// Tracks payment status and integrates with booking confirmation flow
+model Payment {
+  id                  String        @id @default(cuid())
+  
+  /// Foreign key to Booking (optional - allows standalone payments)
+  bookingId           String?
+  
+  /// Foreign key to User who made the payment
+  userId              String
+  
+  /// Payment provider: "stripe", "razorpay", "payu", "offline"
+  provider            String        @default("stripe")
+  
+  /// Provider-specific payment ID (PaymentIntent, Checkout Session, Order ID)
+  /// Unique per provider to prevent duplicate processing
+  providerPaymentId   String?       @unique
+  
+  /// Amount in smallest currency unit (cents for USD, paise for INR)
+  amount              Int
+  
+  /// Currency code (USD, INR, EUR, etc.)
+  currency            String        @default("USD")
+  
+  /// Current payment status
+  status              PaymentStatus @default(PENDING)
+  
+  /// Additional metadata (JSON) for provider-specific data
+  /// Can store: customer details, card info (last 4 digits), receipt URLs, etc.
+  metadata            String?       // JSON stored as text for SQLite
+  
+  /// Invoice file path or URL (generated after successful payment)
+  invoicePath         String?
+  
+  /// Error message if payment failed
+  errorMessage        String?
+  
+  /// When payment was completed (status became SUCCEEDED)
+  paidAt              DateTime?
+  
+  /// When refund was processed (if status is REFUNDED)
+  refundedAt          DateTime?
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Relations
+  /// Many-to-one: Each payment belongs to one user
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Many-to-one: Each payment is for one booking (optional)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  // Indexes for performance and queries
+  @@index([userId])
+  @@index([bookingId])
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
+  @@index([paidAt])
+  
+  // Composite indexes for hot queries
+  @@index([status, createdAt]) // Sort payments by status + date
+  @@index([userId, status]) // User's payment history filtered by status
+  
+  @@map("payments")
+}
+
+/// Invoice Model - Manages invoice generation and storage for bookings
+/// Automatically generated upon booking confirmation or offline payment
+/// Supports PDF generation, download, and RBAC-secured access
+model Invoice {
+  id              String        @id @default(cuid())
+  
+  /// Foreign key to Booking (unique - one invoice per booking)
+  bookingId       String        @unique
+  
+  /// Foreign key to User who owns the invoice
+  userId          String
+  
+  /// Total invoice amount in smallest currency unit (cents)
+  /// Matches the booking totalPrice or payment amount
+  amount          Int
+  
+  /// Payment method used: "online" (Stripe/Razorpay), "offline" (cash/bank transfer), "pending"
+  paymentMethod   String        @default("pending")
+  
+  /// Payment status at time of invoice generation
+  paymentStatus   PaymentStatus @default(PENDING)
+  
+  /// Sequential invoice number: INV-2025-0001, INV-2025-0002, etc.
+  /// Format: INV-YYYY-NNNNN
+  invoiceNumber   String        @unique
+  
+  /// Optional: URL or file path to generated PDF invoice
+  /// Can be local path (/public/invoices/...) or S3/cloud storage URL
+  pdfUrl          String?
+  
+  /// Currency code (USD, INR, EUR, etc.)
+  currency        String        @default("USD")
+  
+  /// Date the invoice was issued (typically booking confirmation date)
+  issuedAt        DateTime      @default(now())
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  /// One-to-one: Each invoice belongs to one booking
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  /// Many-to-one: Each invoice belongs to one user
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance and queries
+  @@index([userId])
+  @@index([bookingId])
+  @@index([invoiceNumber])
+  @@index([paymentStatus])
+  @@index([issuedAt])
+  @@index([createdAt])
+  
+  @@map("invoices")
+}
+
+// ==========================================
+// GROUP BOOKING & DEPOSIT MODELS (DAY 12)
+// ==========================================
+
+/// DepositPolicy Model - Configures deposit requirements for group bookings
+/// Defines rules for when deposits are required based on number of rooms booked
+/// SuperAdmin-managed configuration
+model DepositPolicy {
+  id         String   @id @default(cuid())
+  
+  /// Minimum number of rooms to trigger this deposit policy
+  minRooms   Int
+  
+  /// Maximum number of rooms this policy applies to
+  maxRooms   Int
+  
+  /// Type of deposit calculation: "percent" (percentage of total) or "fixed" (fixed amount)
+  type       String   // "percent" | "fixed"
+  
+  /// Deposit value: percentage (0-100) if type is "percent", or amount in cents if type is "fixed"
+  value      Float
+  
+  /// Whether this policy is currently active
+  active     Boolean  @default(true)
+  
+  /// Description of the policy (e.g., "10-19 rooms require 20% deposit")
+  description String?
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Indexes for performance
+  @@index([active])
+  @@index([minRooms])
+  @@index([maxRooms])
+  
+  @@map("deposit_policies")
+}
+
+/// SpecialDay Model - Configures special pricing or blocking rules for specific dates
+/// Supports both blocked dates (no bookings allowed) and special rates
+/// Can apply globally or to specific room types
+/// Admin/SuperAdmin-managed configuration
+model SpecialDay {
+  id          String    @id @default(cuid())
+  
+  /// Date this special rule applies to
+  date        DateTime
+  
+  /// Optional: Specific room type this rule applies to (null = all room types)
+  roomTypeId  String?
+  
+  /// Type of rule: "blocked" (no bookings) or "special_rate" (custom pricing)
+  ruleType    String    // "blocked" | "special_rate"
+  
+  /// Rate calculation type for special_rate: "multiplier" (e.g., 1.5x) or "fixed" (fixed price override)
+  rateType    String?   // "multiplier" | "fixed"
+  
+  /// Rate value: multiplier (e.g., 1.5 for 150%) or fixed price in cents
+  rateValue   Float?
+  
+  /// Description of the special day (e.g., "Christmas - Premium Rates", "Maintenance Block")
+  description String?
+  
+  /// Whether this rule is currently active
+  active      Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  /// Optional: Room type this special day applies to
+  roomType    RoomType? @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance
+  @@index([date])
+  @@index([roomTypeId])
+  @@index([ruleType])
+  @@index([active])
+  
+  // Unique constraint: One rule per date per room type
+  @@unique([date, roomTypeId])
+  
+  @@map("special_days")
+}
+
+// ==========================================
+// CONCURRENCY & IDEMPOTENCY MODELS (DAY 13)
+// ==========================================
+
+/// IdempotencyKey Model - Prevents duplicate booking creation from concurrent requests
+/// Tracks unique request identifiers to ensure idempotent operations
+/// Used in conjunction with row-level locks for complete concurrency safety
+model IdempotencyKey {
+  id        String   @id @default(cuid())
+  
+  /// Unique idempotency key generated from request parameters
+  /// Format: hash(userId + roomTypeId + startDate + endDate + roomsBooked)
+  /// Ensures duplicate requests return the same result
+  key       String   @unique
+  
+  /// Foreign key to Booking created with this idempotency key
+  bookingId String   @unique
+  
+  /// JSON metadata about the request (for debugging/auditing)
+  /// Stores: userId, roomTypeId, startDate, endDate, roomsBooked, requestedAt
+  metadata  String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  /// One-to-one: Each idempotency key maps to one booking
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance
+  @@index([key])
+  @@index([createdAt])
+  
+  @@map("idempotency_keys")
+}
+
+// ==========================================
+// ADMIN AUDIT LOG MODELS (DAY 15)
+// ==========================================
+
+/// BookingAuditLog Model - Tracks all admin actions on bookings
+/// Provides complete audit trail for compliance and debugging
+/// Records: offline payments, booking overrides, cancellations, modifications
+model BookingAuditLog {
+  id        String   @id @default(cuid())
+  
+  /// Foreign key to Booking being modified
+  bookingId String
+  
+  /// Foreign key to Admin/SuperAdmin user who performed the action
+  adminId   String
+  
+  /// Action type: OFFLINE_PAYMENT, OVERRIDE_CONFIRM, OVERRIDE_CANCEL, FORCE_CANCEL, etc.
+  action    String
+  
+  /// Optional reason or notes for the action (required for overrides)
+  reason    String?
+  
+  /// JSON metadata about the action (before/after state, payment details, etc.)
+  /// Stores: oldStatus, newStatus, paymentAmount, paymentMethod, etc.
+  metadata  String?
+  
+  /// IP address of the admin who performed the action
+  ipAddress String?
+  
+  createdAt DateTime @default(now())
+
+  // Relations
+  /// Many-to-one: Each audit log entry is for one booking
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  /// Many-to-one: Each audit log entry is created by one admin user
+  admin   User    @relation("AdminAuditLogs", fields: [adminId], references: [id], onDelete: Restrict)
+
+  // Indexes for performance and queries
+  @@index([bookingId])
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+  
+  @@map("booking_audit_logs")
+}
+
+// ==========================================
+// SUPERADMIN BULK COMMUNICATION MODELS (DAY 16)
+// ==========================================
+
+/// BulkMessage Model - Tracks bulk communication campaigns sent by SuperAdmins
+/// Supports WhatsApp and Email channels with CSV member uploads
+/// Stores campaign details, status, and individual message results
+model BulkMessage {
+  id            String   @id @default(cuid())
+  
+  /// Foreign key to SuperAdmin user who created the campaign
+  adminId       String
+  
+  /// Campaign title/name for reference
+  title         String
+  
+  /// Message template content with placeholders: {name}, {phone}, {email}
+  messageContent String
+  
+  /// Channel: "whatsapp" | "email"
+  channel       String
+  
+  /// Total number of recipients from CSV
+  totalRecipients Int
+  
+  /// Number of messages successfully sent
+  sentCount     Int      @default(0)
+  
+  /// Number of messages that failed to send
+  failedCount   Int      @default(0)
+  
+  /// Overall status: "pending" | "processing" | "completed" | "failed"
+  status        String   @default("pending")
+  
+  /// JSON array of recipient data: [{ name, phone, email, status, error? }]
+  /// Stores individual send results for tracking
+  recipientsData String  // JSON stored as text for SQLite
+  
+  /// Error message if bulk send failed
+  errorMessage  String?
+  
+  /// When the campaign was started
+  startedAt     DateTime?
+  
+  /// When the campaign was completed
+  completedAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  /// Many-to-one: Each bulk message is created by one admin
+  admin User @relation("BulkMessages", fields: [adminId], references: [id], onDelete: Restrict)
+
+  // Indexes for performance
+  @@index([adminId])
+  @@index([status])
+  @@index([channel])
+  @@index([createdAt])
+  
+  @@map("bulk_messages")
+}
+
+// ==========================================
+// NOTIFICATIONS & SCHEDULED REMINDERS (DAY 19)
+// ==========================================
+
+/// NotificationType Enum - Types of notifications
+enum NotificationType {
+  BOOKING_REMINDER      // 24h before check-in
+  PAYMENT_REMINDER      // For unpaid bookings
+  WAITLIST_ALERT        // When room becomes available
+  BROADCAST             // Admin announcements
+  BOOKING_CONFIRMATION  // Booking confirmed
+  CANCELLATION_NOTICE   // Booking cancelled
+  INVOICE_READY         // Invoice generated
+  CHECKIN_ALERT         // Guest check-in notification
+  CHECKOUT_ALERT        // Guest check-out notification
+}
+
+/// NotificationChannel Enum - Delivery channels
+enum NotificationChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  IN_APP
+}
+
+/// NotificationStatus Enum - Notification delivery status
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+/// Notification Model - Manages all notification messages and scheduling
+/// Supports automated reminders, manual broadcasts, and transactional messages
+/// Tracks delivery status and integrates with WhatsApp/Email/SMS
+model Notification {
+  id            String              @id @default(cuid())
+  
+  /// Foreign key to User receiving the notification
+  userId        String
+  
+  /// Optional: Related booking (for booking-specific notifications)
+  bookingId     String?
+  
+  
+  /// Type of notification
+  type          NotificationType
+  
+  /// Delivery channel
+  channel       NotificationChannel
+  
+  /// Message content (can include placeholders for personalization)
+  message       String
+  
+  /// Subject line for emails (optional)
+  subject       String?
+  
+  /// Current delivery status
+  status        NotificationStatus  @default(PENDING)
+  
+  /// When the notification should be sent (for scheduled notifications)
+  scheduledAt   DateTime
+  
+  /// When the notification was actually sent
+  sentAt        DateTime?
+  
+  /// Number of retry attempts (for failed notifications)
+  retryCount    Int                 @default(0)
+  
+  /// Error message if delivery failed
+  errorMessage  String?
+  
+  /// JSON metadata for additional context (booking details, links, etc.)
+  metadata      String?             // JSON stored as text for SQLite
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relations
+  /// Many-to-one: Each notification belongs to one user
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance and queries
+  @@index([userId])
+  @@index([bookingId])
+  @@index([type])
+  @@index([channel])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
+  
+  // Composite indexes for notification processing
+  @@index([status, scheduledAt]) // Find pending notifications ready to send
+  @@index([userId, type, status]) // User's notification history by type
+  @@index([userId, status]) // Optimized for unread count queries
+  
+  @@map("notifications")
+}
+
+// ==========================================
+// SECURITY & AUDIT MODELS - Day 20
+// ==========================================
+
+/// Refresh Token Model - For secure session management with token rotation
+/// Stores hashed refresh tokens for authentication
+/// Supports token rotation and revocation
+model RefreshToken {
+  id        String    @id @default(cuid())
+  
+  /// User who owns this refresh token
+  userId    String
+  
+  /// SHA-256 hash of the refresh token (never store plain tokens)
+  tokenHash String    @unique
+  
+  /// When this token expires
+  expiresAt DateTime
+  
+  /// When the token was created
+  createdAt DateTime  @default(now())
+  
+  /// When the token was last used (for rotation tracking)
+  lastUsedAt DateTime?
+  
+  /// When the token was revoked (null = still valid)
+  revokedAt DateTime?
+  
+  /// IP address when token was created (for security auditing)
+  createdFromIp String?
+  
+  /// User agent when token was created
+  userAgent String?
+  
+  // Indexes
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  
+  @@map("refresh_tokens")
+}
+
+/// OTP Attempt Model - For rate limiting and brute-force protection
+/// Tracks failed OTP verification attempts per phone/IP
+model OtpAttempt {
+  id          String   @id @default(cuid())
+  
+  /// Phone number for the OTP attempt
+  phone       String
+  
+  /// IP address of the requester
+  ip          String
+  
+  /// Type of OTP action (request or verify)
+  attemptType String   // 'REQUEST' or 'VERIFY'
+  
+  /// Whether the attempt was successful
+  success     Boolean  @default(false)
+  
+  /// When the attempt occurred
+  attemptedAt DateTime @default(now())
+  
+  /// User agent string
+  userAgent   String?
+  
+  /// Additional metadata (JSON)
+  metadata    String?  // JSON stored as text for SQLite
+  
+  // Indexes for rate limiting queries
+  @@index([phone, attemptedAt])
+  @@index([ip, attemptedAt])
+  @@index([attemptType])
+  
+  @@map("otp_attempts")
+}
+
+/// Security Event Model - For logging security-related events
+/// Tracks suspicious activity, violations, and security incidents
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  
+  /// Type of security event
+  eventType   String   // 'OTP_FAILED', 'RATE_LIMIT_EXCEEDED', 'CSRF_VIOLATION', etc.
+  
+  /// User ID if available (null for unauthenticated events)
+  userId      String?
+  
+  /// IP address where event originated
+  ip          String
+  
+  /// User agent string
+  userAgent   String?
+  
+  /// Severity level
+  severity    String   @default("MEDIUM") // 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+  
+  /// Descriptive message
+  message     String
+  
+  /// Additional metadata (JSON)
+  metadata    String?  // JSON stored as text for SQLite
+  
+  /// When the event occurred
+  occurredAt  DateTime @default(now())
+  
+  // Indexes for security analysis
+  @@index([eventType])
+  @@index([userId])
+  @@index([ip])
+  @@index([severity])
+  @@index([occurredAt])
+  
+  @@map("security_events")
+}
+
+/// Admin Audit Log Model - For tracking admin actions and overrides
+/// Critical for compliance and accountability
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  
+  /// Admin user who performed the action
+  adminId     String
+  
+  /// Type of action performed
+  action      String   // 'OVERRIDE_CONFIRM', 'OVERRIDE_CANCEL', 'FORCE_DELETE', etc.
+  
+  /// Type of target resource
+  targetType  String   // 'BOOKING', 'USER', 'ROOM', 'PAYMENT', 'SYSTEM'
+  
+  /// ID of the target resource
+  targetId    String
+  
+  /// JSON object describing what changed (before/after values)
+  changes     String?  // JSON stored as text for SQLite
+  
+  /// Admin's reason for the action (required for overrides)
+  reason      String
+  
+  /// Additional metadata
+  metadata    String?  // JSON stored as text for SQLite
+  
+  /// IP address of admin
+  adminIp     String?
+  
+  /// When the action occurred
+  createdAt   DateTime @default(now())
+  
+  // Relations (optional - not enforced by DB for flexibility)
+  // admin User @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  
+  // Indexes for auditing queries
+  @@index([adminId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  
+  @@map("admin_audit_logs")
+}
+
+

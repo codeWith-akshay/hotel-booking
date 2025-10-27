@@ -106,7 +106,7 @@ export default function ProtectedRoute({
   const pathname = usePathname()
   
   // Zustand store
-  const { user, token, isAuthenticated, isTokenExpired, logout } = useAuthStore()
+  const { user, token, isAuthenticated, isTokenExpired, logout, _hasHydrated } = useAuthStore()
   
   // Local state
   const [isChecking, setIsChecking] = useState(true)
@@ -116,6 +116,12 @@ export default function ProtectedRoute({
   // AUTH CHECK EFFECT
   // ==========================================
   useEffect(() => {
+    // Wait for Zustand to rehydrate from localStorage
+    if (!_hasHydrated) {
+      setLoadingReason('checking-auth')
+      return
+    }
+
     const checkAuth = async () => {
       try {
         // ==========================================
@@ -213,6 +219,7 @@ export default function ProtectedRoute({
 
     checkAuth()
   }, [
+    _hasHydrated,
     isAuthenticated,
     token,
     user,

@@ -162,6 +162,9 @@ export interface CreateBookingPayload {
   numberOfAdults: number
   numberOfChildren: number
   
+  // Group booking support
+  roomsBooked?: number
+  
   // Optional
   specialRequests?: string
   notes?: string
@@ -300,6 +303,8 @@ export interface ApiResponse<T = any> {
   data?: T
   error?: string
   errors?: BookingValidationError[]
+  validationErrors?: string[]
+  warnings?: string[]
   message?: string
 }
 
