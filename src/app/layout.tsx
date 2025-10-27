@@ -7,6 +7,9 @@ import { themeInitScript } from "@/store/themeStore";
 import AppLayoutWrapper from "@/components/layout/AppLayoutWrapper";
 import ReduxProvider from "@/redux/ReduxProvider";
 
+// Force dynamic rendering to avoid static generation issues with client components
+export const dynamic = 'force-dynamic'
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
