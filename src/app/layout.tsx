@@ -9,6 +9,8 @@ import ReduxProvider from "@/redux/ReduxProvider";
 
 // Force dynamic rendering to avoid static generation issues with client components
 export const dynamic = 'force-dynamic'
+// Use Node.js runtime for full React support
+export const runtime = 'nodejs'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
