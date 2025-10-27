@@ -13,9 +13,18 @@ echo "🗄️  Generating Prisma Client..."
 pnpm exec prisma generate
 
 echo "🏗️  Building Next.js application..."
-# Set environment variables to force dynamic rendering
+# Set environment variables to force dynamic rendering and skip static optimization
 export NEXT_PRIVATE_STANDALONE=1
 export NODE_ENV=production
-pnpm exec next build
+export NEXT_DISABLE_SWC_WASM=1
+export __NEXT_EXPERIMENTAL_SKIP_STANDALONE_BUILD=1
+
+# Build with dynamic rendering only
+pnpm exec next build || {
+  echo "⚠️  First build attempt failed, trying with alternative approach..."
+  # If build fails, try without experimental flags
+  unset __NEXT_EXPERIMENTAL_SKIP_STANDALONE_BUILD
+  pnpm exec next build
+}
 
 echo "✅ Build completed successfully!"
