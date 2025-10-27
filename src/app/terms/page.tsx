@@ -6,6 +6,9 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { FileText } from 'lucide-react'
 
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Terms of Service | Hotel Booking',
   description: 'Terms and conditions for using our hotel booking services.',

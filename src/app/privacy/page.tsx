@@ -6,6 +6,9 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { Shield } from 'lucide-react'
 
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Privacy Policy | Hotel Booking',
   description: 'Our privacy policy and how we handle your personal information.',
