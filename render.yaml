@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: oregon # Change to your preferred region: oregon, frankfurt, singapore, ohio
-    buildCommand: bash scripts/render-build-fallback.sh
+    buildCommand: bash scripts/render-build-aggressive.sh
     startCommand: pnpm start
     healthCheckPath: /api/health
     envVars:
