@@ -13,6 +13,9 @@ echo "🗄️  Generating Prisma Client..."
 pnpm exec prisma generate
 
 echo "🏗️  Building Next.js application..."
+# Set environment variables to force dynamic rendering
+export NEXT_PRIVATE_STANDALONE=1
+export NODE_ENV=production
 pnpm exec next build
 
 echo "✅ Build completed successfully!"

@@ -10,6 +10,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NEXT_PRIVATE_STANDALONE
+        value: "1"
       - key: PRISMA_SKIP_POSTINSTALL_GENERATE
         value: "true"
       - key: PRISMA_GENERATE_SKIP_AUTOINSTALL
