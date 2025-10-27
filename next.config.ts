@@ -9,23 +9,31 @@ const nextConfig: NextConfig = {
     // Skip ESLint during build
     ignoreDuringBuilds: true,
   },
-  // Disable static optimization completely
-  // This makes all pages dynamic by default
-  experimental: {
-    // @ts-ignore - Force ISR off
-    isrMemoryCacheSize: 0,
-    // @ts-ignore - Disable static generation
-    disableOptimizedLoading: true,
-  },
   // Standalone output for Docker/Render deployment
   output: 'standalone',
-  // Disable React strict mode to avoid double renders in dev
+  // Disable React strict mode
   reactStrictMode: false,
-  // Disable page static optimization
+  // Disable telemetry
+  telemetry: false,
+  // Disable static page generation completely
+  experimental: {
+    // @ts-ignore
+    isrMemoryCacheSize: 0,
+    // @ts-ignore
+    disableOptimizedLoading: true,
+    // @ts-ignore
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
+  // Generate unique build ID to prevent caching issues
   generateBuildId: async () => {
-    // Use timestamp to force dynamic builds
     return `build-${Date.now()}`
   },
+  // Skip trailing slash redirect
+  skipTrailingSlashRedirect: true,
+  // Skip middleware redirect
+  skipMiddlewareUrlNormalize: true,
 };
 
 export default nextConfig;

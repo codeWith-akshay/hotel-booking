@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: oregon # Change to your preferred region: oregon, frankfurt, singapore, ohio
-    buildCommand: pnpm install --frozen-lockfile --ignore-scripts && pnpm exec prisma generate && NEXT_DISABLE_SWC_WASM=1 pnpm exec next build
+    buildCommand: bash scripts/render-build-fallback.sh
     startCommand: pnpm start
     healthCheckPath: /api/health
     envVars:
