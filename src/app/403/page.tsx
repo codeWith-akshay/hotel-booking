@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth.store'
@@ -27,7 +27,7 @@ import { getDefaultDashboard, type Role } from '@/lib/auth/route-protection'
  * - Provides navigation options
  * - Auto-redirect option
  */
-export default function ForbiddenPage() {
+function ForbiddenContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, logout } = useAuthStore()
@@ -239,5 +239,20 @@ export default function ForbiddenPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ForbiddenPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-red-600 border-t-transparent"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ForbiddenContent />
+    </Suspense>
   )
 }

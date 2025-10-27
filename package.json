@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
-    "start": "next start -p ${PORT:-3000}",
+    "start": "node_modules\\.bin\\next.CMD start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",

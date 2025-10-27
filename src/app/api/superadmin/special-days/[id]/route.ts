@@ -9,11 +9,11 @@ import { DeleteSpecialDayRequestSchema } from '@/lib/validation/superadmin.valid
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
-    const { id } = params
+    const { id } = await params
 
     const validation = DeleteSpecialDayRequestSchema.safeParse({ id, adminId: body.adminId })
     if (!validation.success) {

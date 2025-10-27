@@ -18,12 +18,13 @@ import { UpdateDepositPolicySchema } from '@/lib/validation/group-booking.valida
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication and SuperAdmin authorization check
 
-    const result = await getDepositPolicyById(params.id)
+    const { id } = await params
+    const result = await getDepositPolicyById(id)
 
     if (!result.success) {
       return NextResponse.json(
@@ -52,7 +53,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication and SuperAdmin authorization check
@@ -72,7 +73,8 @@ export async function PATCH(
       )
     }
 
-    const result = await updateDepositPolicy(params.id, validationResult.data)
+    const { id } = await params
+    const result = await updateDepositPolicy(id, validationResult.data)
 
     if (!result.success) {
       return NextResponse.json(
@@ -101,12 +103,13 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication and SuperAdmin authorization check
 
-    const result = await deleteDepositPolicy(params.id)
+    const { id } = await params
+    const result = await deleteDepositPolicy(id)
 
     if (!result.success) {
       return NextResponse.json(

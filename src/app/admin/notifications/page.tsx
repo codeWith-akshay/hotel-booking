@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -54,7 +54,7 @@ interface Stats {
   byChannel: { channel: NotificationChannel; _count: number }[]
 }
 
-export default function AdminNotificationsPage() {
+function AdminNotificationsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, logout } = useAuthStore()
@@ -449,5 +449,22 @@ function StatusBadge({ status, failureReason }: { status: NotificationStatus; fa
         </span>
       )}
     </div>
+  )
+}
+
+export default function AdminNotificationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading notifications...</p>
+          </div>
+        </div>
+      }
+    >
+      <AdminNotificationsContent />
+    </Suspense>
   )
 }

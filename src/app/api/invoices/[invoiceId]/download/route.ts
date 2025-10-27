@@ -13,10 +13,10 @@ import { join } from 'path';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { invoiceId: string } }
+  { params }: { params: Promise<{ invoiceId: string }> }
 ) {
   try {
-    const invoiceId = params.invoiceId;
+    const { invoiceId } = await params;
 
     // Get userId from query params (in real app, get from session/JWT)
     const userId = request.nextUrl.searchParams.get('userId');

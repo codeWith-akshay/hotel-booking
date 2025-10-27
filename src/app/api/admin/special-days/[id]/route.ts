@@ -18,12 +18,13 @@ import { UpdateSpecialDaySchema } from '@/lib/validation/group-booking.validatio
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication and Admin/SuperAdmin authorization check
 
-    const result = await getSpecialDayById(params.id)
+    const { id } = await params
+    const result = await getSpecialDayById(id)
 
     if (!result.success) {
       return NextResponse.json(
@@ -52,7 +53,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication and Admin/SuperAdmin authorization check
@@ -72,7 +73,8 @@ export async function PATCH(
       )
     }
 
-    const result = await updateSpecialDay(params.id, validationResult.data)
+    const { id } = await params
+    const result = await updateSpecialDay(id, validationResult.data)
 
     if (!result.success) {
       return NextResponse.json(
@@ -101,12 +103,13 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication and Admin/SuperAdmin authorization check
 
-    const result = await deleteSpecialDay(params.id)
+    const { id } = await params
+    const result = await deleteSpecialDay(id)
 
     if (!result.success) {
       return NextResponse.json(
