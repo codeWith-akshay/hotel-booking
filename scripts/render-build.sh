@@ -3,8 +3,8 @@
 
 set -e  # Exit on error
 
-echo "🔧 Installing dependencies..."
-pnpm install --frozen-lockfile
+echo "🔧 Installing dependencies (skipping Prisma postinstall)..."
+PRISMA_SKIP_POSTINSTALL_GENERATE=true pnpm install --frozen-lockfile
 
 echo "🗄️  Generating Prisma Client..."
 pnpm exec prisma generate

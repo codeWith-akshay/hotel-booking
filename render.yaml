@@ -10,6 +10,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PRISMA_SKIP_POSTINSTALL_GENERATE
+        value: "true"
+      - key: PRISMA_GENERATE_SKIP_AUTOINSTALL
+        value: "false"
       - key: DATABASE_URL
         sync: false # Set this in Render dashboard
       - key: NEXTAUTH_SECRET
