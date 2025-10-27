@@ -166,73 +166,13 @@ async function main() {
     console.log(`   🔑 Role: ${superAdminRole.name}`)
 
     // ==========================================
-    // Seed Additional Admin User
-    // ==========================================
-    console.log('\n👤 Seeding additional admin user...')
-
-    const adminPhone2 = '+919022417920'
-    const adminEmail2 = 'admin2@hotelbooking.com'
-    const adminName2 = 'Hotel Manager'
-
-    const adminUser2 = await prisma.user.upsert({
-      where: { phone: adminPhone2 },
-      update: {
-        name: adminName2,
-        email: adminEmail2,
-      },
-      create: {
-        phone: adminPhone2,
-        name: adminName2,
-        email: adminEmail2,
-        roleId: adminRole.id,
-      },
-    })
-
-    console.log(`✅ Additional admin user created/verified:`)
-    console.log(`   📧 Email: ${adminUser2.email}`)
-    console.log(`   📱 Phone: ${adminUser2.phone}`)
-    console.log(`   👤 Name: ${adminUser2.name}`)
-    console.log(`   🆔 ID: ${adminUser2.id}`)
-    console.log(`   🔑 Role: ${adminRole.name}`)
-
-    // ==========================================
-    // Seed Additional Super Admin User
-    // ==========================================
-    console.log('\n👑 Seeding additional super admin user...')
-
-    const superAdminPhone2 = '+919876543210'
-    const superAdminEmail2 = 'ceo@hotelbooking.com'
-    const superAdminName2 = 'Chief Executive Officer'
-
-    const superAdminUser2 = await prisma.user.upsert({
-      where: { phone: superAdminPhone2 },
-      update: {
-        name: superAdminName2,
-        email: superAdminEmail2,
-      },
-      create: {
-        phone: superAdminPhone2,
-        name: superAdminName2,
-        email: superAdminEmail2,
-        roleId: superAdminRole.id,
-      },
-    })
-
-    console.log(`✅ Additional super admin user created/verified:`)
-    console.log(`   📧 Email: ${superAdminUser2.email}`)
-    console.log(`   📱 Phone: ${superAdminUser2.phone}`)
-    console.log(`   👤 Name: ${superAdminUser2.name}`)
-    console.log(`   🆔 ID: ${superAdminUser2.id}`)
-    console.log(`   🔑 Role: ${superAdminRole.name}`)
-
-    // ==========================================
     // Seed Custom Admin User
     // ==========================================
     console.log('\n👤 Seeding custom admin user...')
 
     const customAdminPhone = '+919022417920'
     const customAdminEmail = 'admin9022@gmail.com'
-    const customAdminName = 'Custom Admin'
+    const customAdminName = 'Hotel Admin'
 
     const customAdminUser = await prisma.user.upsert({
       where: { phone: customAdminPhone },
@@ -261,8 +201,8 @@ async function main() {
     console.log('\n👑 Seeding custom super admin user...')
 
     const customSuperAdminPhone = '+919307547129'
-    const customSuperAdminEmail = 'superAdmin9022@gmail.com'
-    const customSuperAdminName = 'Custom Super Admin'
+    const customSuperAdminEmail = 'superadmin9307@gmail.com'
+    const customSuperAdminName = 'Hotel Super Admin'
 
     const customSuperAdminUser = await prisma.user.upsert({
       where: { phone: customSuperAdminPhone },
@@ -555,7 +495,7 @@ async function main() {
     console.log('='.repeat(50))
     console.log('\n📊 Summary:')
     console.log(`   • Roles seeded: ${createdRoles.length}`)
-    console.log(`   • Admin users created: 6 (3 Admins + 3 Super Admins)`)
+    console.log(`   • Admin users created: 4 (2 Admins + 2 Super Admins)`)
     console.log(`   • OTP records created: 1`)
     console.log(`   • Room types seeded: ${createdRoomTypes.length}`)
     console.log(`   • Inventory records created: ${totalInventoryRecords}`)
