@@ -9,8 +9,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
-    "start": "node_modules\\.bin\\next.CMD start",
+    "build": "prisma generate && next build",
+    "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
