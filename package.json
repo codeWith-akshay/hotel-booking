@@ -57,9 +57,6 @@
     "security:audit-logs": "tsx scripts/view-audit-logs.ts",
     "security:cleanup-tokens": "tsx scripts/cleanup-expired-tokens.ts"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.17.1",
