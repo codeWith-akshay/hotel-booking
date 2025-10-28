@@ -63,7 +63,8 @@ import {
  */
 export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<string> {
   // Extract year from invoice number for directory organization
-  const year = invoiceData.invoiceNumber.split('-')[1];
+  const parts = invoiceData.invoiceNumber.split('-');
+  const year = parts[1] || new Date().getFullYear().toString();
   
   // Ensure the directory exists
   await ensureInvoiceDirectory(year);

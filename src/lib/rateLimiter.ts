@@ -437,7 +437,7 @@ export function getClientIP(request: Request): string {
 
   if (forwardedFor) {
     // X-Forwarded-For can contain multiple IPs, take the first one
-    return forwardedFor.split(',')[0].trim()
+    return forwardedFor.split(',')[0]?.trim() || 'unknown'
   }
 
   if (realIp) {

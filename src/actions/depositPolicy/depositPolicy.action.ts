@@ -39,7 +39,7 @@ export async function createDepositPolicy(input: CreateDepositPolicyInput): Prom
   try {
     // Validate authentication and authorization
     const user = await requireAuth()
-    if (user.role.name !== RoleName.SUPERADMIN) {
+    if (user.role !== 'SUPERADMIN') {
       return {
         success: false,
         error: 'Unauthorized. SuperAdmin access required.',
@@ -144,7 +144,7 @@ export async function updateDepositPolicy(input: UpdateDepositPolicyInput): Prom
   try {
     // Validate authentication and authorization
     const user = await requireAuth()
-    if (user.role.name !== RoleName.SUPERADMIN) {
+    if (user.role !== 'SUPERADMIN') {
       return {
         success: false,
         error: 'Unauthorized. SuperAdmin access required.',
@@ -249,7 +249,7 @@ export async function deleteDepositPolicy(input: DepositPolicyIdInput): Promise<
   try {
     // Validate authentication and authorization
     const user = await requireAuth()
-    if (user.role.name !== RoleName.SUPERADMIN) {
+    if (user.role !== 'SUPERADMIN') {
       return {
         success: false,
         error: 'Unauthorized. SuperAdmin access required.',
@@ -316,7 +316,7 @@ export async function getDepositPolicy(input: DepositPolicyIdInput): Promise<{
   try {
     // Validate authentication and authorization
     const user = await requireAuth()
-    if (user.role.name !== RoleName.SUPERADMIN) {
+    if (user.role !== 'SUPERADMIN') {
       return {
         success: false,
         error: 'Unauthorized. SuperAdmin access required.',
@@ -377,7 +377,7 @@ export async function listDepositPolicies(input?: ListDepositPoliciesInput): Pro
   try {
     // Validate authentication and authorization
     const user = await requireAuth()
-    if (user.role.name !== RoleName.SUPERADMIN) {
+    if (user.role !== 'SUPERADMIN') {
       return {
         success: false,
         error: 'Unauthorized. SuperAdmin access required.',
@@ -385,10 +385,10 @@ export async function listDepositPolicies(input?: ListDepositPoliciesInput): Pro
     }
 
     // Validate input
-    const validatedInput = input ? listDepositPoliciesSchema.parse(input) : { activeOnly: false }
+    const validatedInput = input ? listDepositPoliciesSchema.parse(input) : { active: undefined }
 
     // Build query
-    const where = validatedInput.activeOnly ? { active: true } : {}
+    const where = validatedInput.active !== undefined ? { active: validatedInput.active } : {}
 
     // Get deposit policies
     const policies = await prisma.depositPolicy.findMany({
@@ -437,7 +437,7 @@ export async function toggleDepositPolicyStatus(input: DepositPolicyIdInput): Pr
   try {
     // Validate authentication and authorization
     const user = await requireAuth()
-    if (user.role.name !== RoleName.SUPERADMIN) {
+    if (user.role !== 'SUPERADMIN') {
       return {
         success: false,
         error: 'Unauthorized. SuperAdmin access required.',

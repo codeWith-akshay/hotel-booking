@@ -170,7 +170,7 @@ export async function requestOTP(
     // ==========================================
     // STEP 8: Return Success Response
     // ==========================================
-    return {
+    const response: any = {
       success: true,
       message: 'OTP sent successfully',
       data: {
@@ -179,6 +179,14 @@ export async function requestOTP(
         expiresAt: expiresAt.toISOString(),
       },
     }
+
+    // In development mode, include OTP for testing
+    if (process.env.NODE_ENV === 'development') {
+      response.data.otp = otp
+      console.log(`🔓 DEV MODE - OTP: ${otp}`)
+    }
+
+    return response
   } catch (error) {
     // ==========================================
     // ERROR HANDLING

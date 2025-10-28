@@ -81,11 +81,14 @@ export async function POST(req: NextRequest) {
     // Execute the reminder scheduler
     const result = await triggerCheckInReminders()
 
-    // Return minimal response for cron jobs
+    // Return minimal response for cron jobs  
+    const sent = result.success && result.data.success ? result.data.sent : 0
+    const failed = result.success && result.data.success ? result.data.failed : 0
+    
     return NextResponse.json({
       success: result.success,
-      sent: result.sent || 0,
-      failed: result.failed || 0,
+      sent,
+      failed,
     }, {
       status: result.success ? 200 : 500
     })

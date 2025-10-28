@@ -266,11 +266,11 @@ export default function AccessibleBookingCalendar({
       const startDate = startOfMonth(currentMonth);
       const endDate = endOfMonth(addMonths(currentMonth, displayMonths - 1));
 
-      const availability = await getRoomAvailability({
+      const availability = await getRoomAvailability(
         roomTypeId,
         startDate,
-        endDate,
-      });
+        endDate
+      );
 
       if (!availability.success || !availability.data) {
         throw new Error(availability.error || "Failed to load availability");
@@ -403,13 +403,14 @@ export default function AccessibleBookingCalendar({
             booked: "line-through opacity-50 cursor-not-allowed",
           }}
           components={{
-            Day: ({ date, ...props }) => {
+            Day: ({ day, ...props }) => {
+              const date = day.date;
               const dateKey = format(date, "yyyy-MM-dd");
               const availability = availabilityMap[dateKey];
 
               return (
                 <button
-                  {...props}
+                  type="button"
                   className={cn(
                     "touch-target relative rounded-lg text-sm font-medium transition-all duration-200",
                     "focus-ring hover:bg-blue-50 dark:hover:bg-blue-900/20",
@@ -420,6 +421,7 @@ export default function AccessibleBookingCalendar({
                       ? `. ${availability.availableRooms} room${availability.availableRooms !== 1 ? "s" : ""} available`
                       : ""
                   }`}
+                  onClick={props.onClick as any}
                 >
                   {format(date, "d")}
                   {availability && (

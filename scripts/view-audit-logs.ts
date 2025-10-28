@@ -26,7 +26,8 @@ async function viewAuditLogs() {
     if (arg === '--admin-only') args.adminOnly = true
     if (arg === '--security-only') args.securityOnly = true
     if (arg.startsWith('--limit=')) {
-      args.limit = parseInt(arg.split('=')[1], 10)
+      const limitValue = arg.split('=')[1]
+      args.limit = parseInt(limitValue || '20', 10)
     }
   })
 

@@ -1,0 +1,46 @@
+src/actions/depositPolicy/depositPolicy.action.ts(42,19): error TS2339: Property 'name' does not exist on type 'RoleName'.
+  Property 'name' does not exist on type '"MEMBER"'.
+src/actions/depositPolicy/depositPolicy.action.ts(147,19): error TS2339: Property 'name' does not exist on type 'RoleName'.
+  Property 'name' does not exist on type '"MEMBER"'.
+src/actions/depositPolicy/depositPolicy.action.ts(252,19): error TS2339: Property 'name' does not exist on type 'RoleName'.
+  Property 'name' does not exist on type '"MEMBER"'.
+src/actions/depositPolicy/depositPolicy.action.ts(319,19): error TS2339: Property 'name' does not exist on type 'RoleName'.
+  Property 'name' does not exist on type '"MEMBER"'.
+src/actions/depositPolicy/depositPolicy.action.ts(380,19): error TS2339: Property 'name' does not exist on type 'RoleName'.
+  Property 'name' does not exist on type '"MEMBER"'.
+src/actions/depositPolicy/depositPolicy.action.ts(440,19): error TS2339: Property 'name' does not exist on type 'RoleName'.
+  Property 'name' does not exist on type '"MEMBER"'.
+src/components/Calendar/AccessibleBookingCalendar.tsx(425,35): error TS2339: Property 'disabled' does not exist on type '{ modifiers: Modifiers; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; suppressContentEditableWarning?: boolean | undefined; ... 275 more ...; onTransitionStartCapture?: TransitionEventHandler<...> | undefined; }'.
+src/components/dev/AccessibilityChecker.tsx(115,30): error TS2307: Cannot find module 'axe-core' or its corresponding type declarations.
+src/components/dev/AccessibilityChecker.tsx(129,35): error TS7006: Parameter 'violation' implicitly has an 'any' type.
+src/components/dev/AccessibilityChecker.tsx(136,34): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/components/dev/AccessibilityChecker.tsx(136,40): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/examples/booking-validation-frontend.tsx(65,7): error TS18048: 'booking' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(65,15): error TS2339: Property 'depositRequired' does not exist on type 'Booking'.
+src/examples/booking-validation-frontend.tsx(65,34): error TS18048: 'booking' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(65,42): error TS2339: Property 'depositAmount' does not exist on type 'Booking'.
+src/examples/booking-validation-frontend.tsx(68,18): error TS18048: 'booking' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(69,22): error TS18048: 'booking' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(69,30): error TS2339: Property 'depositAmount' does not exist on type 'Booking'.
+src/examples/booking-validation-frontend.tsx(70,20): error TS18048: 'booking' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(72,34): error TS18048: 'booking' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(77,19): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/examples/booking-validation-frontend.tsx(78,30): error TS18048: 'booking' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(317,19): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/examples/booking-validation-frontend.tsx(320,9): error TS18048: 'result.data' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(320,21): error TS2339: Property 'depositRequired' does not exist on type 'Booking'.
+src/examples/booking-validation-frontend.tsx(321,32): error TS18048: 'result.data' is possibly 'undefined'.
+src/examples/booking-validation-frontend.tsx(323,32): error TS18048: 'result.data' is possibly 'undefined'.
+src/lib/cron/notificationScheduler.ts(121,9): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/lib/cron/notificationScheduler.ts(254,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/lib/cron/notificationScheduler.ts(287,13): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+tests/helpers/test-utils.ts(6,23): error TS2307: Cannot find module '@faker-js/faker' or its corresponding type declarations.
+tests/mocks/prisma.mock.ts(17,9): error TS7022: 'mockPrisma' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+tests/mocks/prisma.mock.ts(230,19): error TS2304: Cannot find name 'PaymentStatus'.
+tests/mocks/prisma.mock.ts(280,27): error TS7024: Function implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
+tests/unit/availability-checker.test.ts(5,58): error TS2307: Cannot find module '@jest/globals' or its corresponding type declarations.

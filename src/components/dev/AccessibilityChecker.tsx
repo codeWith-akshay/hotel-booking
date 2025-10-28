@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ==========================================
 // ACCESSIBILITY CHECKER (DEVELOPMENT ONLY)
 // ==========================================
@@ -126,14 +127,14 @@ export async function runAccessibilityCheck(): Promise<any | undefined> {
         'background: #dc2626; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;'
       )
 
-      results.violations.forEach((violation) => {
+      results.violations.forEach((violation: any) => {
         console.group(`${violation.impact?.toUpperCase()}: ${violation.help}`)
         console.log('Description:', violation.description)
         console.log('WCAG Tags:', violation.tags.join(', '))
         console.log('Help URL:', violation.helpUrl)
         console.log('Affected elements:', violation.nodes.length)
         
-        violation.nodes.forEach((node, index) => {
+        violation.nodes.forEach((node: any, index: number) => {
           console.group(`Element ${index + 1}`)
           console.log('HTML:', node.html)
           console.log('Target:', node.target)

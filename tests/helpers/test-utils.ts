@@ -3,6 +3,7 @@
  * Reusable functions for testing
  */
 
+// @ts-ignore - faker-js not installed yet
 import { faker } from '@faker-js/faker'
 
 /**

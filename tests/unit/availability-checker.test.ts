@@ -2,6 +2,7 @@
  * Availability Checker Business Logic Tests
  * Tests the core availability checking logic for room bookings
  */
+// @ts-ignore - jest globals not installed yet
 import { describe, expect, test, jest, beforeEach } from '@jest/globals'
 
 describe('Availability Checker Logic Tests', () => {

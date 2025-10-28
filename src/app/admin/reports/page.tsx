@@ -51,7 +51,10 @@ function AdminReportsContent() {
   const fetchReportStats = async () => {
     setIsLoading(true);
     try {
-      const result = await getReportStats(dateRange.startDate, dateRange.endDate);
+      const result = await getReportStats(
+        dateRange.startDate || new Date().toISOString(), 
+        dateRange.endDate || new Date().toISOString()
+      );
       
       if (result.success && result.data) {
         setStats(result.data);

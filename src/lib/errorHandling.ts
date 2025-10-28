@@ -216,7 +216,8 @@ function sanitizeMessage(message: string): string {
   sanitized = sanitized.replace(/DELETE FROM/gi, '[SQL query]')
 
   // Remove stack trace indicators
-  sanitized = sanitized.split('\n')[0] // Take only first line
+  const firstLine = sanitized.split('\n')[0]
+  sanitized = firstLine || sanitized // Take only first line
 
   // Limit length
   if (sanitized.length > 200) {
@@ -471,7 +472,7 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
  * @returns {boolean} True if should report
  */
 export function shouldReportError(errorCode: string): boolean {
-  const ignoredCodes = [
+  const ignoredCodes: string[] = [
     ERROR_CODES.VALIDATION_ERROR,
     ERROR_CODES.NOT_FOUND,
     ERROR_CODES.AUTHENTICATION_REQUIRED,

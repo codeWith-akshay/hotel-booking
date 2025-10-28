@@ -21,6 +21,7 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [devOtp, setDevOtp] = useState('') // Store OTP for development display
 
   // Input validation state
   const [touched, setTouched] = useState(false)
@@ -75,6 +76,13 @@ function LoginForm() {
       if (data.success) {
         // Store pending phone in Zustand
         setPendingPhone(phone, data.data.expiresAt)
+
+        // In development, store OTP if provided
+        if (process.env.NODE_ENV === 'development' && data.data.otp) {
+          setDevOtp(data.data.otp)
+          // Also store in sessionStorage so verify-otp page can access it
+          sessionStorage.setItem('dev_otp', data.data.otp)
+        }
 
         // Show success message briefly
         setSuccess(`OTP sent to ${formatPhoneNumber(phone)}!`)
@@ -231,9 +239,24 @@ function LoginForm() {
             <p className="text-xs text-yellow-700 font-mono">
               Phone: +14155551234
             </p>
-            <p className="text-xs text-yellow-700 mt-1">
-              Check console for OTP code after clicking "Send OTP"
-            </p>
+            {devOtp && (
+              <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded">
+                <p className="text-xs font-semibold text-green-800 mb-1">
+                  ✅ OTP Generated:
+                </p>
+                <p className="text-2xl font-bold text-green-900 tracking-widest text-center">
+                  {devOtp}
+                </p>
+                <p className="text-xs text-green-700 mt-1 text-center">
+                  Use this code on the verification page
+                </p>
+              </div>
+            )}
+            {!devOtp && (
+              <p className="text-xs text-yellow-700 mt-1">
+                OTP will appear here after clicking "Send OTP"
+              </p>
+            )}
           </div>
         )}
       </div>

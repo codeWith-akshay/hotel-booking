@@ -3,9 +3,9 @@
  * Provides a fully mocked Prisma client for integration tests
  */
 
-import { PrismaClient, BookingStatus, GuestType } from '@prisma/client'
+import { PrismaClient, BookingStatus, GuestType, PaymentStatus } from '@prisma/client'
 
-export const createMockPrismaClient = () => {
+export const createMockPrismaClient = (): any => {
   // In-memory storage
   const users: any[] = []
   const bookings: any[] = []
@@ -14,7 +14,7 @@ export const createMockPrismaClient = () => {
   const payments: any[] = []
   const bookingRules: any[] = []
 
-  const mockPrisma = {
+  const mockPrisma: any = {
     user: {
       findUnique: jest.fn((args: any) => {
         const user = users.find(u => 

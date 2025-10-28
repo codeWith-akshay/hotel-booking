@@ -43,7 +43,6 @@ export default function MyBookingsPage() {
             nights: booking.nights,
             totalPrice: booking.totalPrice,
             status: booking.status,
-            paymentStatus: booking.paymentStatus,
             createdAt: booking.createdAt,
           }))
           setBookings(transformedBookings)

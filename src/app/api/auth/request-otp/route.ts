@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       attemptType: 'REQUEST',
       success: result.success,
       userAgent,
-      metadata: { code: result.code },
+      metadata: {},
     })
 
     // Log security event for successful request

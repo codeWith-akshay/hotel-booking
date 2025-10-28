@@ -57,14 +57,13 @@ export async function sendCheckInReminders() {
             userId: booking.userId,
             type: 'BOOKING_REMINDER',
             metadata: {
-              path: ['event'],
-              equals: 'checkin_reminder',
+              contains: 'checkin_reminder',
             },
             createdAt: {
               gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Within last 24 hours
             },
           },
-        })
+        });
 
         if (existingReminder) {
           console.log(`[CheckInReminderScheduler] Reminder already sent for booking ${booking.id}`)

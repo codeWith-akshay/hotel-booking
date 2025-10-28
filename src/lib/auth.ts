@@ -23,3 +23,6 @@ export function isStrongPassword(password: string): boolean {
   const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/
   return strongPasswordRegex.test(password)
 }
+
+// Re-export requireAuth from middleware/auth.utils for convenience
+export { requireAuth } from './middleware/auth.utils'

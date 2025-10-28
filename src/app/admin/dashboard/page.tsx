@@ -151,26 +151,32 @@ const AnimatedStatCard = ({ title, value, icon, trend, subtitle, gradient, delay
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl p-6 shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 ${
+      className={`group relative overflow-hidden rounded-3xl p-8 shadow-xl transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
       style={{
         background: gradient,
       }}
     >
+      {/* Animated Background Blobs */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-linear-to-br from-white/40 to-transparent transform rotate-45 translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
+        <div className="absolute inset-0 bg-linear-to-br from-white/50 to-transparent transform rotate-45 translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
       </div>
 
       <div className="relative z-10">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl group-hover:scale-110 transition-transform duration-300">
+        <div className="flex items-start justify-between mb-6">
+          <div className="p-4 bg-white/30 backdrop-blur-lg rounded-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
             <div className="text-white">{icon}</div>
           </div>
           {trend && (
-            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
-              trend.isPositive ? 'bg-green-500/20 text-green-100' : 'bg-red-500/20 text-red-100'
+            <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold shadow-lg ${
+              trend.isPositive ? 'bg-green-500/30 text-green-100 backdrop-blur-sm' : 'bg-red-500/30 text-red-100 backdrop-blur-sm'
             }`}>
               {trend.isPositive ? (
                 <ArrowUpRight className="h-4 w-4" />
@@ -183,14 +189,14 @@ const AnimatedStatCard = ({ title, value, icon, trend, subtitle, gradient, delay
         </div>
         
         <div className="text-white">
-          <div className="text-4xl font-bold mb-1 group-hover:scale-105 transition-transform duration-300">
+          <div className="text-5xl font-extrabold mb-2 group-hover:scale-105 transition-transform duration-300 tracking-tight">
             {value}
           </div>
-          <div className="text-white/80 text-sm font-medium mb-1">
+          <div className="text-white/90 text-base font-semibold mb-2">
             {title}
           </div>
           {subtitle && (
-            <div className="text-white/60 text-xs">
+            <div className="text-white/70 text-sm font-medium">
               {subtitle}
             </div>
           )}
@@ -199,8 +205,11 @@ const AnimatedStatCard = ({ title, value, icon, trend, subtitle, gradient, delay
 
       {/* Shine Effect */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
       </div>
+
+      {/* Glow Effect */}
+      <div className="absolute -inset-1 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
     </div>
   );
 };
@@ -399,51 +408,64 @@ export default function AdminDashboardPage() {
         />
         
         <AdminLayout>
-          <div className="space-y-8 pb-12">
+          <div className="space-y-8 pb-12 relative">
+            {/* Animated Background Elements */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+              <div className="absolute top-20 right-20 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
+              <div className="absolute top-40 left-20 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
+              <div className="absolute bottom-20 left-1/2 w-96 h-96 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+            </div>
+
             {/* Header Actions */}
-            <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Welcome Back
+            <div className="flex items-center justify-between relative z-10">
+          <div className="space-y-2">
+            <h1 className="text-5xl font-extrabold bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
+              Welcome Back, {user?.name || 'Admin'}
             </h1>
-            <p className="text-gray-600 mt-2">Here's what's happening with your hotel today</p>
+            <p className="text-gray-600 text-lg font-medium flex items-center gap-2">
+              <Activity className="h-5 w-5 text-purple-600" />
+              Here's what's happening with your hotel today
+            </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => openOfflineBookingModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+              className="group flex items-center gap-2 px-6 py-4 bg-linear-to-r from-green-500 to-emerald-600 text-white rounded-2xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 relative overflow-hidden"
             >
-              <LogIn className="h-5 w-5" />
-              <span className="font-medium">Quick Check-In</span>
+              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <LogIn className="h-5 w-5 relative z-10" />
+              <span className="font-bold relative z-10">Quick Check-In</span>
             </button>
             <button
               onClick={() => openOfflineBookingModal(false)}
-              className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+              className="group flex items-center gap-2 px-6 py-4 bg-linear-to-r from-purple-500 to-pink-600 text-white rounded-2xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 relative overflow-hidden"
             >
-              <Users className="h-5 w-5" />
-              <span className="font-medium">Offline Booking</span>
+              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <Users className="h-5 w-5 relative z-10" />
+              <span className="font-bold relative z-10">Offline Booking</span>
             </button>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+              className="group flex items-center gap-2 px-6 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-purple-500 hover:shadow-xl transition-all duration-300 disabled:opacity-50 hover:-translate-y-1"
             >
-              <RefreshCw className={`h-5 w-5 text-blue-600 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="font-medium text-gray-700">Refresh</span>
+              <RefreshCw className={`h-5 w-5 text-purple-600 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="font-bold text-gray-700">Refresh</span>
             </button>
-            <button className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
-              <Download className="h-5 w-5" />
-              <span className="font-medium">Export Report</span>
+            <button className="group flex items-center gap-2 px-6 py-4 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 relative overflow-hidden">
+              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <Download className="h-5 w-5 relative z-10" />
+              <span className="font-bold relative z-10">Export Report</span>
             </button>
           </div>
         </div>
 
         {/* Animated Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
           <AnimatedStatCard
             title="Total Revenue"
             value={formatCurrency(stats.revenue)}
-            icon={<DollarSign className="h-7 w-7" />}
+            icon={<DollarSign className="h-8 w-8" />}
             subtitle={`Avg: ${formatCurrency(stats.avgBookingValue)}/booking`}
             gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
             trend={{ value: 12.5, isPositive: true }}
@@ -452,7 +474,7 @@ export default function AdminDashboardPage() {
           <AnimatedStatCard
             title="Total Bookings"
             value={stats.totalBookings}
-            icon={<Calendar className="h-7 w-7" />}
+            icon={<Calendar className="h-8 w-8" />}
             subtitle={`${stats.pendingBookings} pending`}
             gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
             trend={{ value: 8.2, isPositive: true }}
@@ -461,7 +483,7 @@ export default function AdminDashboardPage() {
           <AnimatedStatCard
             title="Occupancy Rate"
             value={`${stats.occupancyRate.toFixed(1)}%`}
-            icon={<Hotel className="h-7 w-7" />}
+            icon={<Hotel className="h-8 w-8" />}
             subtitle={`${stats.bookedRooms}/${stats.totalRooms} rooms`}
             gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
             trend={{ value: 3.1, isPositive: true }}
@@ -470,7 +492,7 @@ export default function AdminDashboardPage() {
           <AnimatedStatCard
             title="Today's Check-ins"
             value={stats.todayCheckIns}
-            icon={<CheckCircle className="h-7 w-7" />}
+            icon={<CheckCircle className="h-8 w-8" />}
             subtitle={`${stats.todayCheckOuts} check-outs`}
             gradient="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
             trend={{ value: 5.4, isPositive: true }}
@@ -479,27 +501,29 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
           {/* Revenue Trend Chart */}
           <div className="lg:col-span-2">
-            <Card className="border-0 shadow-xl rounded-2xl overflow-hidden">
-              <CardHeader className="bg-linear-to-r from-blue-50 to-purple-50 border-b">
+            <Card className="border-0 shadow-2xl rounded-3xl overflow-hidden backdrop-blur-sm bg-white/80">
+              <CardHeader className="bg-linear-to-r from-blue-50 via-purple-50 to-pink-50 border-b-2 border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl font-bold text-gray-900">Revenue Trend</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">Last 30 days performance</p>
-                  </div>
-                  <div className="p-3 bg-blue-600 rounded-xl">
-                    <BarChart3 className="h-6 w-6 text-white" />
+                    <CardTitle className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
+                      <div className="p-3 bg-blue-600 rounded-2xl shadow-lg">
+                        <BarChart3 className="h-7 w-7 text-white" />
+                      </div>
+                      Revenue Trend
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 mt-2 ml-16 font-medium">Last 30 days performance overview</p>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6">
-                <ResponsiveContainer width="100%" height={300}>
+              <CardContent className="pt-8 pb-6">
+                <ResponsiveContainer width="100%" height={320}>
                   <AreaChart data={revenueChartData}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
+                        <stop offset="5%" stopColor="#667eea" stopOpacity={0.9}/>
                         <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
                       </linearGradient>
                     </defs>
@@ -507,19 +531,20 @@ export default function AdminDashboardPage() {
                     <XAxis 
                       dataKey="date" 
                       stroke="#6b7280"
-                      style={{ fontSize: '12px' }}
+                      style={{ fontSize: '12px', fontWeight: '600' }}
                     />
                     <YAxis 
                       stroke="#6b7280"
-                      style={{ fontSize: '12px' }}
+                      style={{ fontSize: '12px', fontWeight: '600' }}
                       tickFormatter={(value) => `$${value}`}
                     />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'white', 
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                        border: 'none',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                        padding: '12px'
                       }}
                       formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
                     />
@@ -527,7 +552,7 @@ export default function AdminDashboardPage() {
                       type="monotone" 
                       dataKey="revenue" 
                       stroke="#667eea" 
-                      strokeWidth={3}
+                      strokeWidth={4}
                       fillOpacity={1} 
                       fill="url(#colorRevenue)" 
                     />
@@ -539,19 +564,21 @@ export default function AdminDashboardPage() {
 
           {/* Booking Status Distribution */}
           <div>
-            <Card className="border-0 shadow-xl rounded-2xl overflow-hidden h-full">
-              <CardHeader className="bg-linear-to-r from-purple-50 to-pink-50 border-b">
+            <Card className="border-0 shadow-2xl rounded-3xl overflow-hidden h-full backdrop-blur-sm bg-white/80">
+              <CardHeader className="bg-linear-to-r from-purple-50 via-pink-50 to-orange-50 border-b-2 border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl font-bold text-gray-900">Status</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">Distribution</p>
-                  </div>
-                  <div className="p-3 bg-purple-600 rounded-xl">
-                    <PieChart className="h-6 w-6 text-white" />
+                    <CardTitle className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
+                      <div className="p-3 bg-purple-600 rounded-2xl shadow-lg">
+                        <PieChart className="h-7 w-7 text-white" />
+                      </div>
+                      Status
+                    </CardTitle>
+                    <p className="text-sm text-gray-600 mt-2 ml-16 font-medium">Distribution</p>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6">
+              <CardContent className="pt-8 pb-6">
                 <ResponsiveContainer width="100%" height={250}>
                   <RePieChart>
                     <Pie
@@ -563,25 +590,35 @@ export default function AdminDashboardPage() {
                         const { name, percent } = props;
                         return `${name} ${(percent * 100).toFixed(0)}%`;
                       }}
-                      outerRadius={80}
+                      outerRadius={85}
                       fill="#8884d8"
                       dataKey="value"
+                      strokeWidth={3}
+                      stroke="#fff"
                     >
                       {statusData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 15px 30px rgba(0,0,0,0.15)',
+                        padding: '8px 12px'
+                      }}
+                    />
                   </RePieChart>
                 </ResponsiveContainer>
-                <div className="mt-4 space-y-2">
+                <div className="mt-6 space-y-3 px-2">
                   {statusData.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-sm text-gray-700">{item.name}</span>
+                    <div key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full shadow-md" style={{ backgroundColor: item.color }} />
+                        <span className="text-sm font-bold text-gray-700">{item.name}</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">{item.value}</span>
+                      <span className="text-sm font-extrabold text-gray-900 bg-white px-3 py-1 rounded-lg shadow-sm">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -591,22 +628,22 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Performance Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-0 shadow-lg rounded-2xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-green-100 rounded-xl">
-                  <Activity className="h-6 w-6 text-green-600" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+          <Card className="group border-0 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm bg-white/80">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="p-4 bg-linear-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Activity className="h-8 w-8 text-white" />
                 </div>
-                <Badge className="bg-green-100 text-green-800 border-0">Active</Badge>
+                <Badge className="bg-green-100 text-green-800 border-0 font-bold text-xs px-4 py-2 shadow-sm">Active</Badge>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-4xl font-extrabold text-gray-900 mb-2">
                 {formatCurrency(revenueData.reduce((sum, d) => sum + d.paidRevenue, 0) / 100)}
               </div>
-              <div className="text-sm text-gray-600">Paid Revenue (30 days)</div>
-              <div className="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="text-sm text-gray-600 font-semibold mb-6">Paid Revenue (30 days)</div>
+              <div className="mt-6 h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
                 <div 
-                  className="h-full bg-linear-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-1000"
+                  className="h-full bg-linear-to-r from-green-500 via-green-600 to-emerald-500 rounded-full transition-all duration-1000 shadow-lg"
                   style={{ 
                     width: `${(revenueData.reduce((sum, d) => sum + d.paidRevenue, 0) / revenueData.reduce((sum, d) => sum + d.totalRevenue, 0)) * 100}%` 
                   }}
@@ -615,21 +652,21 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg rounded-2xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-yellow-100 rounded-xl">
-                  <Clock className="h-6 w-6 text-yellow-600" />
+          <Card className="group border-0 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm bg-white/80">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="p-4 bg-linear-to-br from-yellow-500 to-orange-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Clock className="h-8 w-8 text-white" />
                 </div>
-                <Badge className="bg-yellow-100 text-yellow-800 border-0">Pending</Badge>
+                <Badge className="bg-yellow-100 text-yellow-800 border-0 font-bold text-xs px-4 py-2 shadow-sm">Pending</Badge>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-4xl font-extrabold text-gray-900 mb-2">
                 {formatCurrency(revenueData.reduce((sum, d) => sum + d.pendingRevenue, 0) / 100)}
               </div>
-              <div className="text-sm text-gray-600">Pending Revenue (30 days)</div>
-              <div className="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="text-sm text-gray-600 font-semibold mb-6">Pending Revenue (30 days)</div>
+              <div className="mt-6 h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
                 <div 
-                  className="h-full bg-linear-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-1000"
+                  className="h-full bg-linear-to-r from-yellow-500 via-yellow-600 to-orange-500 rounded-full transition-all duration-1000 shadow-lg"
                   style={{ 
                     width: `${(revenueData.reduce((sum, d) => sum + d.pendingRevenue, 0) / revenueData.reduce((sum, d) => sum + d.totalRevenue, 0)) * 100}%` 
                   }}
@@ -638,22 +675,24 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg rounded-2xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-blue-100 rounded-xl">
-                  <Users className="h-6 w-6 text-blue-600" />
+          <Card className="group border-0 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm bg-white/80">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="p-4 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Users className="h-8 w-8 text-white" />
                 </div>
-                <Badge className="bg-blue-100 text-blue-800 border-0">Total</Badge>
+                <Badge className="bg-blue-100 text-blue-800 border-0 font-bold text-xs px-4 py-2 shadow-sm">Total</Badge>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-4xl font-extrabold text-gray-900 mb-2">
                 {revenueData.reduce((sum, d) => sum + d.bookingCount, 0)}
               </div>
-              <div className="text-sm text-gray-600">Total Bookings (30 days)</div>
-              <div className="mt-4 flex items-center gap-2 text-sm">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-                <span className="text-green-600 font-semibold">+15.3%</span>
-                <span className="text-gray-500">vs last month</span>
+              <div className="text-sm text-gray-600 font-semibold mb-6">Total Bookings (30 days)</div>
+              <div className="mt-6 flex items-center gap-2 text-sm">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+                <span className="text-green-600 font-extrabold text-lg">+15.3%</span>
+                <span className="text-gray-500 font-medium">vs last month</span>
               </div>
             </CardContent>
           </Card>
@@ -1036,40 +1075,65 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats Summary */}
+        {/* Quick Stats Summary - Enhanced */}
         {revenueData.length > 0 && (
-          <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-linear-to-br from-blue-600 via-purple-600 to-pink-600">
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                <div className="text-center">
-                  <div className="text-white/80 text-sm font-medium mb-2">Total Revenue</div>
-                  <div className="text-3xl font-bold text-white">
+          <Card className="relative border-0 shadow-2xl rounded-3xl overflow-hidden bg-linear-to-br from-blue-600 via-purple-600 to-pink-600 z-10">
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 bg-size-[20px_20px]" style={{
+                backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)'
+              }} />
+            </div>
+            
+            {/* Floating Orbs */}
+            <div className="absolute top-10 right-20 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute bottom-10 left-20 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+            
+            <CardContent className="p-10 relative z-10">
+              <div className="text-center mb-8">
+                <h3 className="text-3xl font-extrabold text-white mb-2">30-Day Performance Overview</h3>
+                <p className="text-white/80 text-sm font-medium">Comprehensive revenue and booking statistics</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+                <div className="group text-center p-6 bg-white/10 backdrop-blur-lg rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                  <div className="text-white/90 text-sm font-bold mb-3 uppercase tracking-wide">Total Revenue</div>
+                  <div className="text-4xl font-extrabold text-white mb-2 group-hover:scale-110 transition-transform">
                     {formatCurrency(revenueData.reduce((sum, d) => sum + d.totalRevenue, 0) / 100)}
                   </div>
+                  <div className="h-1 w-16 mx-auto bg-white/50 rounded-full" />
                 </div>
-                <div className="text-center">
-                  <div className="text-white/80 text-sm font-medium mb-2">Paid Revenue</div>
-                  <div className="text-3xl font-bold text-white">
+                
+                <div className="group text-center p-6 bg-white/10 backdrop-blur-lg rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                  <div className="text-white/90 text-sm font-bold mb-3 uppercase tracking-wide">Paid Revenue</div>
+                  <div className="text-4xl font-extrabold text-white mb-2 group-hover:scale-110 transition-transform">
                     {formatCurrency(revenueData.reduce((sum, d) => sum + d.paidRevenue, 0) / 100)}
                   </div>
+                  <div className="h-1 w-16 mx-auto bg-green-400 rounded-full" />
                 </div>
-                <div className="text-center">
-                  <div className="text-white/80 text-sm font-medium mb-2">Pending Revenue</div>
-                  <div className="text-3xl font-bold text-white">
+                
+                <div className="group text-center p-6 bg-white/10 backdrop-blur-lg rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                  <div className="text-white/90 text-sm font-bold mb-3 uppercase tracking-wide">Pending Revenue</div>
+                  <div className="text-4xl font-extrabold text-white mb-2 group-hover:scale-110 transition-transform">
                     {formatCurrency(revenueData.reduce((sum, d) => sum + d.pendingRevenue, 0) / 100)}
                   </div>
+                  <div className="h-1 w-16 mx-auto bg-yellow-400 rounded-full" />
                 </div>
-                <div className="text-center">
-                  <div className="text-white/80 text-sm font-medium mb-2">Total Bookings</div>
-                  <div className="text-3xl font-bold text-white">
+                
+                <div className="group text-center p-6 bg-white/10 backdrop-blur-lg rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                  <div className="text-white/90 text-sm font-bold mb-3 uppercase tracking-wide">Total Bookings</div>
+                  <div className="text-4xl font-extrabold text-white mb-2 group-hover:scale-110 transition-transform">
                     {revenueData.reduce((sum, d) => sum + d.bookingCount, 0)}
                   </div>
+                  <div className="h-1 w-16 mx-auto bg-blue-400 rounded-full" />
                 </div>
-                <div className="text-center">
-                  <div className="text-white/80 text-sm font-medium mb-2">Avg Daily Revenue</div>
-                  <div className="text-3xl font-bold text-white">
+                
+                <div className="group text-center p-6 bg-white/10 backdrop-blur-lg rounded-2xl hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                  <div className="text-white/90 text-sm font-bold mb-3 uppercase tracking-wide">Avg Daily Revenue</div>
+                  <div className="text-4xl font-extrabold text-white mb-2 group-hover:scale-110 transition-transform">
                     {formatCurrency(revenueData.reduce((sum, d) => sum + d.totalRevenue, 0) / revenueData.length / 100)}
                   </div>
+                  <div className="h-1 w-16 mx-auto bg-purple-400 rounded-full" />
                 </div>
               </div>
             </CardContent>
@@ -1087,6 +1151,35 @@ export default function AdminDashboardPage() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(20px, -50px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(50px, 50px) scale(1.05); }
+        }
+        
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        
+        .animate-gradient {
+          background-size: 200% auto;
+          animation: gradient 3s linear infinite;
         }
       `}</style>
 

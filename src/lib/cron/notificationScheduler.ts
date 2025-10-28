@@ -70,7 +70,7 @@ async function createBookingReminders() {
     const bookings = await prisma.booking.findMany({
       where: {
         status: BookingStatus.CONFIRMED,
-        checkInDate: {
+        startDate: {
           gte: tomorrow,
           lte: tomorrowEnd,
         },
@@ -81,17 +81,13 @@ async function createBookingReminders() {
             id: true,
             email: true,
             phone: true,
-            firstName: true,
-            lastName: true,
+            name: true,
           },
         },
-        room: {
-          include: {
-            roomType: {
-              select: {
-                name: true,
-              },
-            },
+        roomType: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -117,30 +113,32 @@ async function createBookingReminders() {
       }
 
       // Calculate reminder time (24 hours before check-in)
-      const reminderTime = calculateBookingReminderTime(booking.checkInDate);
+      const reminderTime = calculateBookingReminderTime(booking.startDate);
 
       // Generate message for email
       const emailMessage = generateMessage(NotificationType.BOOKING_REMINDER, NotificationChannel.EMAIL, {
-        userName: `${booking.user.firstName} ${booking.user.lastName}`,
-        userEmail: booking.user.email,
+        userName: booking.user.name,
+        userEmail: booking.user.email ?? undefined,
+        userPhone: booking.user.phone || '',
         bookingId: booking.id,
-        roomTypeName: booking.room.roomType.name,
-        checkInDate: booking.checkInDate,
-        checkOutDate: booking.checkOutDate,
-        totalAmount: booking.totalAmount,
+        roomTypeName: booking.roomType.name,
+        checkInDate: booking.startDate,
+        checkOutDate: booking.endDate,
+        totalAmount: booking.totalPrice,
       });
 
       // Generate message for WhatsApp (if user has phone)
       const whatsappMessage = booking.user.phone
         ? generateMessage(NotificationType.BOOKING_REMINDER, NotificationChannel.WHATSAPP, {
-            userName: booking.user.firstName,
+            userName: booking.user.name,
             userPhone: booking.user.phone,
             bookingId: booking.id,
-            roomTypeName: booking.room.roomType.name,
-            checkInDate: booking.checkInDate,
-            checkOutDate: booking.checkOutDate,
+            roomTypeName: booking.roomType.name,
+            checkInDate: booking.startDate,
+            checkOutDate: booking.endDate,
+            totalAmount: booking.totalPrice,
           })
-        : null;
+        : undefined;
 
       // Create email notification
       await prisma.notification.create({
@@ -150,7 +148,7 @@ async function createBookingReminders() {
           type: NotificationType.BOOKING_REMINDER,
           channel: NotificationChannel.EMAIL,
           message: emailMessage.message,
-          subject: emailMessage.subject,
+          subject: emailMessage.subject ?? null,
           scheduledAt: reminderTime,
           status: NotificationStatus.PENDING,
         },
@@ -187,11 +185,14 @@ async function createPaymentReminders() {
   try {
     console.log('[Cron: createPaymentReminders] Starting...');
 
-    // Find all confirmed bookings with unpaid status
+    // Find all confirmed bookings where deposit hasn't been paid
     const unpaidBookings = await prisma.booking.findMany({
       where: {
         status: BookingStatus.CONFIRMED,
-        paymentStatus: 'UNPAID',
+        isDepositPaid: false,
+        depositAmount: {
+          not: null,
+        },
       },
       include: {
         user: {
@@ -199,17 +200,13 @@ async function createPaymentReminders() {
             id: true,
             email: true,
             phone: true,
-            firstName: true,
-            lastName: true,
+            name: true,
           },
         },
-        room: {
-          include: {
-            roomType: {
-              select: {
-                name: true,
-              },
-            },
+        roomType: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -221,7 +218,7 @@ async function createPaymentReminders() {
 
     for (const booking of unpaidBookings) {
       // Assume payment is due 3 days before check-in
-      const dueDate = addDays(booking.checkInDate, -3);
+      const dueDate = addDays(booking.startDate, -3);
 
       // Create reminders for 3 days before, 1 day before, and on due date
       const reminderNumbers = [1, 2, 3]; // 3 days, 1 day, 0 days
@@ -253,12 +250,15 @@ async function createPaymentReminders() {
 
         // Generate email message
         const emailMessage = generateMessage(NotificationType.PAYMENT_REMINDER, NotificationChannel.EMAIL, {
-          userName: `${booking.user.firstName} ${booking.user.lastName}`,
-          userEmail: booking.user.email,
+          userName: booking.user.name,
+          userEmail: booking.user.email ?? undefined,
+          userPhone: booking.user.phone || '',
           bookingId: booking.id,
-          roomTypeName: booking.room.roomType.name,
-          totalAmount: booking.totalAmount,
+          roomTypeName: booking.roomType.name,
+          totalAmount: booking.totalPrice,
           dueDate,
+          checkInDate: booking.startDate,
+          checkOutDate: booking.endDate,
           paymentLink: `${process.env.NEXT_PUBLIC_APP_URL}/booking/${booking.id}/payment`,
         });
 
@@ -270,7 +270,7 @@ async function createPaymentReminders() {
             type: NotificationType.PAYMENT_REMINDER,
             channel: NotificationChannel.EMAIL,
             message: emailMessage.message,
-            subject: emailMessage.subject,
+            subject: emailMessage.subject ?? null,
             scheduledAt: reminderTime,
             status: NotificationStatus.PENDING,
             metadata: JSON.stringify({ reminderNumber }),
@@ -281,11 +281,15 @@ async function createPaymentReminders() {
         // Create WhatsApp notification if user has phone
         if (booking.user.phone) {
           const whatsappMessage = generateMessage(NotificationType.PAYMENT_REMINDER, NotificationChannel.WHATSAPP, {
-            userName: booking.user.firstName,
+            userName: booking.user.name,
             userPhone: booking.user.phone,
             bookingId: booking.id,
-            totalAmount: booking.totalAmount,
+            userEmail: booking.user.email ?? undefined,
+            roomTypeName: booking.roomType.name,
+            totalAmount: booking.totalPrice,
             dueDate,
+            checkInDate: booking.startDate,
+            checkOutDate: booking.endDate,
           });
 
           await prisma.notification.create({
@@ -348,28 +352,24 @@ export function initNotificationCronJobs() {
 
   // Send pending notifications every 5 minutes
   cron.schedule(CRON_CONFIG.SEND_NOTIFICATIONS, sendPendingNotifications, {
-    scheduled: true,
     timezone: 'UTC',
   });
   console.log(`[Notification Scheduler] Scheduled: Send pending notifications (${CRON_CONFIG.SEND_NOTIFICATIONS})`);
 
   // Create booking reminders daily at 9 AM
   cron.schedule(CRON_CONFIG.BOOKING_REMINDERS, createBookingReminders, {
-    scheduled: true,
     timezone: 'UTC',
   });
   console.log(`[Notification Scheduler] Scheduled: Create booking reminders (${CRON_CONFIG.BOOKING_REMINDERS})`);
 
   // Create payment reminders daily at 10 AM
   cron.schedule(CRON_CONFIG.PAYMENT_REMINDERS, createPaymentReminders, {
-    scheduled: true,
     timezone: 'UTC',
   });
   console.log(`[Notification Scheduler] Scheduled: Create payment reminders (${CRON_CONFIG.PAYMENT_REMINDERS})`);
 
   // Cleanup old notifications weekly (Sunday at 2 AM)
   cron.schedule(CRON_CONFIG.CLEANUP, cleanupOldNotifications, {
-    scheduled: true,
     timezone: 'UTC',
   });
   console.log(`[Notification Scheduler] Scheduled: Cleanup old notifications (${CRON_CONFIG.CLEANUP})`);

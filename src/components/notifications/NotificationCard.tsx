@@ -61,7 +61,7 @@ interface NotificationCardProps {
 // Icon Components
 // ===========================
 
-const NotificationTypeIcons = {
+const NotificationTypeIcons: Record<NotificationType, React.ComponentType<any>> = {
   BOOKING_REMINDER: Calendar,
   PAYMENT_REMINDER: CreditCard,
   WAITLIST_ALERT: Bell,
@@ -69,18 +69,21 @@ const NotificationTypeIcons = {
   BOOKING_CONFIRMATION: CheckCircle,
   CANCELLATION_NOTICE: XCircle,
   INVOICE_READY: FileText,
+  CHECKIN_ALERT: Bell,
+  CHECKOUT_ALERT: Bell,
 };
 
-const ChannelIcons = {
+const ChannelIcons: Record<NotificationChannel, React.ComponentType<any>> = {
   EMAIL: Mail,
   WHATSAPP: MessageCircle,
   SMS: Smartphone,
   IN_APP: Bell,
 };
 
-const StatusIcons = {
+const StatusIcons: Record<NotificationStatus, React.ComponentType<any>> = {
   PENDING: Clock,
   SENT: CheckCheck,
+  DELIVERED: CheckCheck,
   FAILED: AlertCircle,
   CANCELLED: Ban,
 };

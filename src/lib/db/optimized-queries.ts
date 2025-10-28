@@ -540,8 +540,10 @@ export async function batchCheckAvailability(
     if (!inventoryMap.has(inv.roomTypeId)) {
       inventoryMap.set(inv.roomTypeId, new Map())
     }
-    const dateKey = inv.date.toISOString().split('T')[0]
-    inventoryMap.get(inv.roomTypeId)!.set(dateKey, inv.availableRooms)
+    const dateKey = inv.date.toISOString().split('T')[0] || ''
+    if (dateKey) {
+      inventoryMap.get(inv.roomTypeId)!.set(dateKey, inv.availableRooms)
+    }
   }
 
   // Check each request
@@ -556,7 +558,7 @@ export async function batchCheckAvailability(
     const currentDate = new Date(check.startDate)
     
     while (currentDate < check.endDate) {
-      const dateKey = currentDate.toISOString().split('T')[0]
+      const dateKey = currentDate.toISOString().split('T')[0] || ''
       const available = roomInventory.get(dateKey) ?? 0
       minAvailable = Math.min(minAvailable, available)
       currentDate.setDate(currentDate.getDate() + 1)

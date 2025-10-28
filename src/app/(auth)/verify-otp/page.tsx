@@ -33,6 +33,7 @@ function VerifyOTPForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [devOtp, setDevOtp] = useState('') // Store OTP for development display
 
   // Countdown timer state
   const [secondsRemaining, setSecondsRemaining] = useState(300) // 5 minutes
@@ -51,6 +52,20 @@ function VerifyOTPForm() {
       router.push('/login')
     }
   }, [pendingPhone, router])
+
+  // ==========================================
+  // CHECK FOR OTP IN DEVELOPMENT (from initial request)
+  // ==========================================
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      // Try to get OTP from sessionStorage if it was stored by login page
+      const storedOtp = sessionStorage.getItem('dev_otp')
+      if (storedOtp) {
+        setDevOtp(storedOtp)
+        sessionStorage.removeItem('dev_otp') // Clear it after reading
+      }
+    }
+  }, [])
 
   // ==========================================
   // COUNTDOWN TIMER
@@ -295,6 +310,12 @@ function VerifyOTPForm() {
         setSecondsRemaining(300)
         setCanResend(false)
         setSuccess('New OTP sent successfully!')
+        
+        // In development, store OTP if provided
+        if (process.env.NODE_ENV === 'development' && data.data.otp) {
+          setDevOtp(data.data.otp)
+        }
+        
         // Clear existing OTP
         setOTP(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
@@ -501,12 +522,38 @@ function VerifyOTPForm() {
             <p className="text-xs font-semibold text-yellow-800 mb-2">
               🧪 Development Mode
             </p>
-            <p className="text-xs text-yellow-700">
-              Check your server console for the OTP code
-            </p>
-            <p className="text-xs text-yellow-700 mt-1 font-mono">
-              Example: "Your verification code is: 123456"
-            </p>
+            {devOtp ? (
+              <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded">
+                <p className="text-xs font-semibold text-green-800 mb-1">
+                  ✅ Current OTP Code:
+                </p>
+                <p className="text-2xl font-bold text-green-900 tracking-widest text-center">
+                  {devOtp}
+                </p>
+                <p className="text-xs text-green-700 mt-2 text-center">
+                  This OTP expires in {formatTimeRemaining(secondsRemaining)}
+                </p>
+                <button
+                  onClick={() => {
+                    const digits = devOtp.split('')
+                    setOTP(digits)
+                    inputRefs.current[5]?.focus()
+                  }}
+                  className="mt-2 w-full text-xs bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded transition-colors"
+                >
+                  Auto-fill OTP
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-yellow-700">
+                  Click "Resend OTP" to generate a new code
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  The OTP will appear here for easy testing
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

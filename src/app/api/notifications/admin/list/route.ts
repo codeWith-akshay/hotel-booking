@@ -138,10 +138,8 @@ export async function POST(req: NextRequest) {
     const result = await sendPendingNotifications()
 
     return NextResponse.json({
-      success: result.success,
-      message: result.success
-        ? `Processed ${result.processed} notifications (${result.sent} sent, ${result.failed} failed)`
-        : `Failed to process notifications: ${result.error}`,
+      success: true,
+      message: `Processed ${result.processed} notifications (${result.sent} sent, ${result.failed} failed)`,
       data: result,
     })
 

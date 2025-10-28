@@ -134,9 +134,9 @@ export const SUPERADMIN_NAVIGATION: RoleNavigationConfig = {
       roles: ['SUPERADMIN'],
       children: [
         { label: 'All Users', href: '/superadmin/users' },
-        { label: 'Admins', href: '/superadmin/users/admins' },
-        { label: 'Members', href: '/superadmin/users/members' },
-        { label: 'Roles & Permissions', href: '/superadmin/users/roles' },
+        { label: 'Admins', href: '/superadmin/users?role=ADMIN' },
+        { label: 'Members', href: '/superadmin/users?role=MEMBER' },
+        { label: 'Create User', href: '/superadmin/users/create' },
       ],
     },
     {

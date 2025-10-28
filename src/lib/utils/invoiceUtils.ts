@@ -57,10 +57,11 @@ export async function generateInvoiceNumber(): Promise<string> {
 
   let nextSequence = 1;
 
-  if (lastInvoice) {
+  if (lastInvoice && lastInvoice.invoiceNumber) {
     // Extract the sequence number from the last invoice
     // Format: INV-YYYY-NNNNN -> extract NNNNN
-    const lastSequence = parseInt(lastInvoice.invoiceNumber.split('-')[2], 10);
+    const parts = lastInvoice.invoiceNumber.split('-');
+    const lastSequence = parseInt(parts[2] || '0', 10);
     nextSequence = lastSequence + 1;
   }
 
