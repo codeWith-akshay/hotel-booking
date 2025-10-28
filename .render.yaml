@@ -3,7 +3,7 @@ services:
     name: hotel-booking
     runtime: node
     plan: free
-    region: oregon # Change to your preferred region: oregon, frankfurt, singapore, ohio
+    region: oregon
     buildCommand: pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm exec next build
     startCommand: pnpm start
     healthCheckPath: /api/health
@@ -17,20 +17,20 @@ services:
       - key: PRISMA_GENERATE_SKIP_AUTOINSTALL
         value: "false"
       - key: DATABASE_URL
-        sync: false # Set this in Render dashboard
+        sync: false
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: NEXTAUTH_URL
-        sync: false # Set to your Render URL
+        sync: false
       - key: NEXT_PUBLIC_BASE_URL
-        sync: false # Set to your Render URL
+        sync: false
       - key: STRIPE_SECRET_KEY
-        sync: false # Optional: Set in dashboard if using payments
+        sync: false
       - key: STRIPE_WEBHOOK_SECRET
-        sync: false # Optional: Set in dashboard if using payments
+        sync: false
       - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-        sync: false # Optional: Set in dashboard if using payments
+        sync: false
       - key: IRCA_API_KEY
-        sync: false # Optional: Set in dashboard if using IRCA integration
+        sync: false
       - key: NEXT_PUBLIC_IRCA_API_URL
         value: https://api.irca.org
