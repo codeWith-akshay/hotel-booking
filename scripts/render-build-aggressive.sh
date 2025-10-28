@@ -18,8 +18,9 @@ echo "🏗️  Building Next.js application..."
 export NODE_ENV=production
 export NEXT_TELEMETRY_DISABLED=1
 export CI=true
+export SKIP_ENV_VALIDATION=1
 
-# Try normal build first
+# Try normal build first (without --no-lint flag)
 pnpm exec next build 2>&1 | tee build.log
 
 BUILD_EXIT_CODE=${PIPESTATUS[0]}

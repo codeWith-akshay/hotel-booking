@@ -5,23 +5,12 @@ const nextConfig: NextConfig = {
     // Skip TypeScript errors during build (for production)
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Skip ESLint during build
-    ignoreDuringBuilds: true,
-  },
   // Standalone output for Docker/Render deployment
   output: 'standalone',
   // Disable React strict mode
   reactStrictMode: false,
-  // Disable telemetry
-  telemetry: false,
-  // Disable static page generation completely
+  // Experimental features
   experimental: {
-    // @ts-ignore
-    isrMemoryCacheSize: 0,
-    // @ts-ignore
-    disableOptimizedLoading: true,
-    // @ts-ignore
     serverActions: {
       bodySizeLimit: '2mb',
     },
@@ -32,8 +21,8 @@ const nextConfig: NextConfig = {
   },
   // Skip trailing slash redirect
   skipTrailingSlashRedirect: true,
-  // Skip middleware redirect
-  skipMiddlewareUrlNormalize: true,
+  // Use new config option instead of deprecated one
+  skipProxyUrlNormalize: true,
 };
 
 export default nextConfig;
