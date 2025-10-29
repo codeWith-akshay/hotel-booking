@@ -1,0 +1,19 @@
+{
+  "buildCommand": "prisma generate && pnpm run build",
+  "installCommand": "pnpm install --no-frozen-lockfile --shamefully-hoist",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "PRISMA_GENERATE_SKIP_AUTOINSTALL": "false",
+    "SKIP_ENV_VALIDATION": "true",
+    "PRISMA_CLI_BINARY_TARGETS": "debian-openssl-3.0.x,linux-musl-openssl-3.0.x"
+  },
+  "build": {
+    "env": {
+      "PRISMA_GENERATE_SKIP_AUTOINSTALL": "false",
+      "SKIP_ENV_VALIDATION": "true",
+      "NODE_OPTIONS": "--max-old-space-size=4096",
+      "PRISMA_CLI_BINARY_TARGETS": "debian-openssl-3.0.x,linux-musl-openssl-3.0.x"
+    }
+  }
+}

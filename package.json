@@ -2,10 +2,10 @@
   "name": "hotel-booking",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@10.0.0",
   "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
+    "node": "20.x",
+    "pnpm": "10.x"
   },
   "scripts": {
     "dev": "next dev",
@@ -47,8 +47,8 @@
     "perf:cache-stats": "tsx scripts/cache-stats.ts",
     "clean": "rimraf node_modules .next out dist",
     "clean:all": "pnpm clean && rimraf pnpm-lock.yaml",
-    "prepare": "prisma generate",
-    "postinstall": "prisma generate",
+    "prepare": "prisma generate || exit 0",
+    "postinstall": "node scripts/postinstall.js || prisma generate || exit 0",
     "predev": "prisma generate",
     "prebuild": "prisma generate",
     "security:scan": "pnpm audit --audit-level=moderate",

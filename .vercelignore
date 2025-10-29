@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Testing
+cypress/
+tests/
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Development
+.env.local
+.env.development
+*.log
+
+# Build artifacts
+.next/
+out/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Scripts
+scripts/
+
+# TypeScript
+tsconfig.tsbuildinfo
+tsc-output.txt
