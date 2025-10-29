@@ -108,3 +108,4 @@ next-env.d.ts
 # TURBOPACK
 # ==========================================
 .turbo
+.vercel

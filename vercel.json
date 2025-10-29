@@ -1,6 +1,5 @@
 {
   "buildCommand": "prisma generate && pnpm run build",
-  "installCommand": "pnpm install --no-frozen-lockfile --shamefully-hoist",
   "framework": "nextjs",
   "regions": ["iad1"],
   "env": {
