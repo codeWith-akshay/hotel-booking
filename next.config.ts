@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   // Standalone output for Docker/Render deployment
-  output: 'standalone',
+  
   // Disable React strict mode
   reactStrictMode: false,
   // Experimental features
