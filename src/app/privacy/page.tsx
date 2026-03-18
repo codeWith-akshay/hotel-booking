@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Shield } from 'lucide-react'
 
 // Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
+// PERF: Static page - SSG enabled for optimal performance
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Hotel Booking',

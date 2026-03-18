@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/store/auth.store'
+import { useAuthUser, useAuthActions } from '@/store/selectors'
 import { Button } from '@/components/ui'
 import { formatPhoneNumber as _formatPhoneNumber } from '@/lib/utils'
 import { ProfileCompletionGuard } from '@/components/guards/ProfileCompletionGuard'
@@ -55,13 +55,15 @@ const mockNotifications = [
 // ==========================================
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, isAuthenticated, logout, _hasHydrated } = useAuthStore()
+  // PERF: Use selectors for granular subscriptions
+  const { user, isAuthenticated, hasHydrated } = useAuthUser()
+  const { logout } = useAuthActions()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => setMounted(true), [])
 
   // Wait for both component mount AND store hydration before checking auth
-  const isReady = mounted && _hasHydrated
+  const isReady = mounted && hasHydrated
 
   useEffect(() => {
     if (isReady && (!isAuthenticated || !user)) {
@@ -69,11 +71,12 @@ export default function DashboardPage() {
     }
   }, [isReady, isAuthenticated, user, router])
 
-  const handleLogout = () => {
+  // PERF: Memoized logout handler
+  const handleLogout = useCallback(() => {
     logout()
     fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(console.error)
     router.push('/login')
-  }
+  }, [logout, router])
 
   // Show nothing until store is hydrated and user is authenticated
   if (!isReady || !isAuthenticated || !user) return null

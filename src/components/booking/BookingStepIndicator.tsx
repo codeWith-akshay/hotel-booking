@@ -2,15 +2,17 @@
 // BOOKING STEP INDICATOR - Progress Visualization
 // ==========================================
 // Visual progress indicator showing current step and completion status
+// PERF: Optimized with React.memo and useCallback to prevent re-renders
 
 'use client'
 
+import { memo, useCallback, useMemo } from 'react'
 import { Check, Calendar, Users, Bed, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBookingStore, BookingStep } from '@/store/bookingUIStore'
 
 // ==========================================
-// STEP CONFIGURATION
+// STEP CONFIGURATION - Static, no re-computation needed
 // ==========================================
 
 const steps = [
@@ -38,16 +40,127 @@ const steps = [
     icon: CreditCard,
     shortLabel: 'Review & Pay',
   },
-]
+] as const
 
 // ==========================================
-// STEP INDICATOR COMPONENT
+// MEMOIZED STEP ITEM COMPONENT
 // ==========================================
 
-export function BookingStepIndicator() {
+interface StepItemProps {
+  step: typeof steps[number]
+  index: number
+  isActive: boolean
+  isCompleted: boolean
+  isAccessible: boolean
+  isLast: boolean
+  onStepClick: (stepId: BookingStep) => void
+}
+
+const StepItem = memo(function StepItem({
+  step,
+  index,
+  isActive,
+  isCompleted,
+  isAccessible,
+  isLast,
+  onStepClick,
+}: StepItemProps) {
+  const IconComponent = step.icon
+  
+  const handleClick = useCallback(() => {
+    if (isAccessible) {
+      onStepClick(step.id)
+    }
+  }, [isAccessible, onStepClick, step.id])
+
+  return (
+    <div className="flex items-center">
+      {/* Step Circle */}
+      <button
+        onClick={handleClick}
+        disabled={!isAccessible}
+        className={cn(
+          'flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300',
+          'border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
+          {
+            'bg-green-500 border-green-500 text-white hover:bg-green-600': isCompleted,
+            'bg-blue-500 border-blue-500 text-white ring-2 ring-blue-200': isActive,
+            'bg-white border-gray-300 text-gray-500 hover:border-blue-300 hover:text-blue-500': 
+              !isActive && !isCompleted && isAccessible,
+            'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed': !isAccessible,
+          }
+        )}
+      >
+        {isCompleted ? (
+          <Check className="h-6 w-6" />
+        ) : (
+          <IconComponent className="h-6 w-6" />
+        )}
+      </button>
+
+      {/* Step Label */}
+      <div className="ml-3 mr-8">
+        <p className={cn(
+          'text-sm font-medium transition-colors duration-300',
+          {
+            'text-green-600': isCompleted,
+            'text-blue-600': isActive,
+            'text-gray-500': !isActive && !isCompleted && isAccessible,
+            'text-gray-400': !isAccessible,
+          }
+        )}>
+          {step.label}
+        </p>
+        <p className="text-xs text-gray-500">
+          {step.shortLabel}
+        </p>
+      </div>
+
+      {/* Connecting Line */}
+      {!isLast && (
+        <div className={cn(
+          'h-0.5 w-16 transition-colors duration-300',
+          {
+            'bg-green-500': isCompleted,
+            'bg-blue-500': isActive,
+            'bg-gray-300': !isCompleted && !isActive,
+          }
+        )} />
+      )}
+    </div>
+  )
+})
+
+// ==========================================
+// STEP INDICATOR COMPONENT - Optimized
+// ==========================================
+
+export const BookingStepIndicator = memo(function BookingStepIndicator() {
   const { currentStep, isStepValid, goToStep } = useBookingStore()
   
-  const currentStepIndex = steps.findIndex(step => step.id === currentStep)
+  const currentStepIndex = useMemo(
+    () => steps.findIndex(step => step.id === currentStep),
+    [currentStep]
+  )
+
+  const handleStepClick = useCallback((stepId: BookingStep) => {
+    goToStep(stepId)
+  }, [goToStep])
+
+  // Memoize step accessibility calculations
+  const stepStates = useMemo(() => {
+    return steps.map((step, index) => ({
+      isActive: step.id === currentStep,
+      isCompleted: index < currentStepIndex,
+      isAccessible: index <= currentStepIndex || isStepValid(steps[index - 1]?.id as BookingStep),
+    }))
+  }, [currentStep, currentStepIndex, isStepValid])
+
+  // Memoize progress percentage for mobile
+  const progressPercent = useMemo(
+    () => ((currentStepIndex + 1) / steps.length) * 100,
+    [currentStepIndex]
+  )
 
   return (
     <div className="mb-8">
@@ -55,74 +168,18 @@ export function BookingStepIndicator() {
           DESKTOP STEP INDICATOR
           ========================================== */}
       <div className="hidden md:flex items-center justify-center space-x-4">
-        {steps.map((step, index) => {
-          const isActive = step.id === currentStep
-          const isCompleted = index < currentStepIndex
-          const isAccessible = index <= currentStepIndex || isStepValid(steps[index - 1]?.id as BookingStep)
-          const IconComponent = step.icon
-
-          return (
-            <div key={step.id} className="flex items-center">
-              {/* Step Circle */}
-              <button
-                onClick={() => isAccessible ? goToStep(step.id) : undefined}
-                disabled={!isAccessible}
-                className={cn(
-                  'flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300',
-                  'border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
-                  {
-                    // Completed step
-                    'bg-green-500 border-green-500 text-white hover:bg-green-600': isCompleted,
-                    // Active step
-                    'bg-blue-500 border-blue-500 text-white ring-2 ring-blue-200': isActive,
-                    // Accessible but not active
-                    'bg-white border-gray-300 text-gray-500 hover:border-blue-300 hover:text-blue-500': 
-                      !isActive && !isCompleted && isAccessible,
-                    // Not accessible
-                    'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed': 
-                      !isAccessible,
-                  }
-                )}
-              >
-                {isCompleted ? (
-                  <Check className="h-6 w-6" />
-                ) : (
-                  <IconComponent className="h-6 w-6" />
-                )}
-              </button>
-
-              {/* Step Label */}
-              <div className="ml-3 mr-8">
-                <p className={cn(
-                  'text-sm font-medium transition-colors duration-300',
-                  {
-                    'text-green-600': isCompleted,
-                    'text-blue-600': isActive,
-                    'text-gray-500': !isActive && !isCompleted && isAccessible,
-                    'text-gray-400': !isAccessible,
-                  }
-                )}>
-                  {step.label}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {step.shortLabel}
-                </p>
-              </div>
-
-              {/* Connecting Line */}
-              {index < steps.length - 1 && (
-                <div className={cn(
-                  'h-0.5 w-16 transition-colors duration-300',
-                  {
-                    'bg-green-500': index < currentStepIndex,
-                    'bg-blue-500': index === currentStepIndex - 1,
-                    'bg-gray-300': index >= currentStepIndex,
-                  }
-                )} />
-              )}
-            </div>
-          )
-        })}
+        {steps.map((step, index) => (
+          <StepItem
+            key={step.id}
+            step={step}
+            index={index}
+            isActive={stepStates[index].isActive}
+            isCompleted={stepStates[index].isCompleted}
+            isAccessible={stepStates[index].isAccessible}
+            isLast={index === steps.length - 1}
+            onStepClick={handleStepClick}
+          />
+        ))}
       </div>
 
       {/* ==========================================
@@ -133,9 +190,7 @@ export function BookingStepIndicator() {
         <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
           <div 
             className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
-            style={{ 
-              width: `${((currentStepIndex + 1) / steps.length) * 100}%` 
-            }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
 
@@ -171,9 +226,8 @@ export function BookingStepIndicator() {
               onClick={() => {
                 const targetStep = steps[index]
                 if (!targetStep) return
-                const isAccessible = index <= currentStepIndex || isStepValid(steps[index - 1]?.id as BookingStep)
-                if (isAccessible) {
-                  goToStep(targetStep.id)
+                if (stepStates[index].isAccessible) {
+                  handleStepClick(targetStep.id)
                 }
               }}
               className={cn(
@@ -190,4 +244,4 @@ export function BookingStepIndicator() {
       </div>
     </div>
   )
-}
+})

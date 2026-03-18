@@ -2,27 +2,80 @@
 // BOOKING SUMMARY CARD - DYNAMIC CLIENT COMPONENT
 // ==========================================
 // Real-time summary of booking details from store
+// PERF: Optimized with React.memo and useMemo for efficient re-renders
 
 'use client'
 
+import { memo, useMemo, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { useBookingStore } from '@/store/bookingUIStore'
 
-export function BookingSummaryCard() {
+// Constants - moved outside component to avoid recreation
+const TAX_RATE = 0.1
+
+// ==========================================
+// MEMOIZED SUB-COMPONENTS
+// ==========================================
+
+interface RoomItemProps {
+  room: {
+    roomTypeName: string
+    quantity: number
+    pricePerNight: number
+    subtotal: number
+  }
+  nights: number
+}
+
+const RoomItem = memo(function RoomItem({ room, nights }: RoomItemProps) {
+  return (
+    <div className="p-3 bg-white rounded-lg border border-green-200">
+      <div className="flex justify-between items-start mb-1">
+        <span className="font-semibold text-gray-900 text-sm">{room.roomTypeName}</span>
+        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+          x{room.quantity}
+        </span>
+      </div>
+      <div className="text-xs text-gray-600">
+        ${room.pricePerNight}/night × {nights || 0} nights
+      </div>
+      <div className="text-sm font-semibold text-green-600 mt-1">
+        ${room.subtotal.toFixed(2)}
+      </div>
+    </div>
+  )
+})
+
+// ==========================================
+// MAIN COMPONENT
+// ==========================================
+
+export const BookingSummaryCard = memo(function BookingSummaryCard() {
   const { startDate, endDate, nights, adults, children, guestType, selectedRooms } = useBookingStore()
   
-  // Format dates
-  const formatDate = (date: Date | null) => {
+  // Memoized date formatter
+  const formatDate = useCallback((date: Date | null) => {
     if (!date) return 'Not selected'
     const d = new Date(date)
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
+  }, [])
 
-  // Calculate subtotal and taxes
-  const subtotal = selectedRooms.reduce((acc, room) => acc + room.subtotal, 0)
-  const taxRate = 0.1 // 10% tax
-  const taxes = subtotal * taxRate
-  const total = subtotal + taxes
+  // Memoized formatted dates
+  const formattedStartDate = useMemo(() => formatDate(startDate), [formatDate, startDate])
+  const formattedEndDate = useMemo(() => formatDate(endDate), [formatDate, endDate])
+
+  // Memoized pricing calculations
+  const pricing = useMemo(() => {
+    const subtotal = selectedRooms.reduce((acc, room) => acc + room.subtotal, 0)
+    const taxes = subtotal * TAX_RATE
+    const total = subtotal + taxes
+    return { subtotal, taxes, total }
+  }, [selectedRooms])
+
+  // Memoized guest type display
+  const formattedGuestType = useMemo(() => {
+    return guestType ? guestType.charAt(0) + guestType.slice(1).toLowerCase() : 'Not selected'
+  }, [guestType])
 
   return (
     <Card className="p-6 bg-white/95 backdrop-blur-lg shadow-2xl border-0 ring-2 ring-blue-100 hover:ring-blue-200 transition-all duration-300 hover:shadow-blue-200/50">
@@ -52,11 +105,11 @@ export function BookingSummaryCard() {
           <div className="text-sm text-gray-700 space-y-2 ml-8">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Check-in:</span>
-              <span className="font-semibold text-gray-900">{formatDate(startDate)}</span>
+              <span className="font-semibold text-gray-900">{formattedStartDate}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Check-out:</span>
-              <span className="font-semibold text-gray-900">{formatDate(endDate)}</span>
+              <span className="font-semibold text-gray-900">{formattedEndDate}</span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-blue-200">
               <span className="text-gray-600">Nights:</span>
@@ -87,7 +140,7 @@ export function BookingSummaryCard() {
             <div className="flex justify-between items-center pt-2 border-t border-purple-200">
               <span className="text-gray-600">Guest Type:</span>
               <span className="font-bold text-purple-600">
-                {guestType ? guestType.charAt(0) + guestType.slice(1).toLowerCase() : 'Not selected'}
+                {formattedGuestType}
               </span>
             </div>
           </div>
@@ -107,20 +160,7 @@ export function BookingSummaryCard() {
             {selectedRooms.length > 0 ? (
               <div className="space-y-3">
                 {selectedRooms.map((room, index) => (
-                  <div key={index} className="p-3 bg-white rounded-lg border border-green-200">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-gray-900 text-sm">{room.roomTypeName}</span>
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                        x{room.quantity}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      ${room.pricePerNight}/night × {nights || 0} nights
-                    </div>
-                    <div className="text-sm font-semibold text-green-600 mt-1">
-                      ${room.subtotal.toFixed(2)}
-                    </div>
-                  </div>
+                  <RoomItem key={index} room={room} nights={nights} />
                 ))}
               </div>
             ) : (
@@ -148,15 +188,15 @@ export function BookingSummaryCard() {
           <div className="text-sm space-y-3">
             <div className="flex justify-between items-center text-gray-300">
               <span>Rooms Subtotal:</span>
-              <span className="font-semibold text-white">${subtotal.toFixed(2)}</span>
+              <span className="font-semibold text-white">${pricing.subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center text-gray-300">
               <span>Taxes & Fees (10%):</span>
-              <span className="font-semibold text-white">${taxes.toFixed(2)}</span>
+              <span className="font-semibold text-white">${pricing.taxes.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pt-3 border-t-2 border-yellow-500/30 font-bold text-yellow-400 text-lg">
               <span>Total Amount:</span>
-              <span className="text-2xl">${total.toFixed(2)}</span>
+              <span className="text-2xl">${pricing.total.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -176,4 +216,4 @@ export function BookingSummaryCard() {
       </div>
     </Card>
   )
-}
+})

@@ -1,13 +1,14 @@
 // ==========================================
-// TERMS OF SERVICE PAGE
+// TERMS OF SERVICE PAGE - SSG Optimized
 // ==========================================
+// Static page - will be pre-rendered at build time for optimal performance
 
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { FileText } from 'lucide-react'
 
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
+// REMOVED: force-dynamic was unnecessary for static content
+// This page will now be statically generated (SSG) at build time
 
 export const metadata: Metadata = {
   title: 'Terms of Service | Hotel Booking',

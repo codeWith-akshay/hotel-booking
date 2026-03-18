@@ -2,12 +2,13 @@
 // HOME PAGE - Landing Page
 // ==========================================
 // Main landing page for the hotel booking application
+// PERF: Optimized with selectors, throttled scroll, CSS animations
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/store/auth.store'
+import { useAuthUser } from '@/store/selectors'
 import Link from 'next/link'
 import { 
   Building2, Calendar, Users, Shield, ArrowRight, Loader2, 
@@ -18,18 +19,34 @@ import { Button } from '@/components/ui/button'
 
 export default function Home() {
   const router = useRouter()
-  const { isAuthenticated, user, _hasHydrated } = useAuthStore()
-  const [scrollY, setScrollY] = useState(0)
+  // PERF: Use selector instead of entire store - only re-renders when these specific values change
+  const { user, isAuthenticated, hasHydrated } = useAuthUser()
+  const parallaxRef = useRef<HTMLDivElement>(null)
 
+  // PERF: Throttled scroll handler using requestAnimationFrame
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', handleScroll)
+    let ticking = false
+    
+    const handleScroll = () => {
+      if (!ticking && parallaxRef.current) {
+        requestAnimationFrame(() => {
+          if (parallaxRef.current) {
+            const scrollY = window.scrollY
+            parallaxRef.current.style.setProperty('--scroll-y', `${scrollY}px`)
+          }
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   useEffect(() => {
     // Wait for Zustand to rehydrate from localStorage
-    if (!_hasHydrated) {
+    if (!hasHydrated) {
       return
     }
 
@@ -43,10 +60,10 @@ export default function Home() {
         router.push('/dashboard')
       }
     }
-  }, [isAuthenticated, user, _hasHydrated, router])
+  }, [isAuthenticated, user, hasHydrated, router])
 
   // Show loading while hydrating
-  if (!_hasHydrated) {
+  if (!hasHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
@@ -118,19 +135,16 @@ export default function Home() {
   // Show landing page for non-authenticated users
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Animated Background Elements - PERF: CSS-driven parallax */}
+      <div ref={parallaxRef} className="fixed inset-0 overflow-hidden pointer-events-none parallax-container">
         <div 
-          className="absolute top-20 right-20 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"
-          style={{ transform: `translateY(${scrollY * 0.5}px)` }}
+          className="absolute top-20 right-20 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob parallax-fast"
         />
         <div 
-          className="absolute top-40 left-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"
-          style={{ transform: `translateY(${scrollY * 0.3}px)` }}
+          className="absolute top-40 left-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 parallax-medium"
         />
         <div 
-          className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"
-          style={{ transform: `translateY(${scrollY * -0.2}px)` }}
+          className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000 parallax-slow"
         />
       </div>
 
@@ -292,7 +306,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Add Custom Animations */}
+      {/* Add Custom Animations - PERF: CSS-driven, no JS re-renders */}
       <style jsx global>{`
         @keyframes blob {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -360,6 +374,26 @@ export default function Home() {
         .bg-grid-white\/10 {
           background-image: linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
                             linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
+        }
+        
+        /* PERF: CSS-driven parallax - no React re-renders */
+        .parallax-container {
+          --scroll-y: 0px;
+        }
+        
+        .parallax-fast {
+          transform: translateY(calc(var(--scroll-y) * 0.5));
+          will-change: transform;
+        }
+        
+        .parallax-medium {
+          transform: translateY(calc(var(--scroll-y) * 0.3));
+          will-change: transform;
+        }
+        
+        .parallax-slow {
+          transform: translateY(calc(var(--scroll-y) * -0.2));
+          will-change: transform;
         }
       `}</style>
     </div>
