@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -111,8 +111,11 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
 export function useToast() {
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([])
   
+  // HYDRATION-SAFE: Use counter-based ID generation (called in event handler, not render)
+  const idCounterRef = useRef(0)
+  
   const addToast = (message: string, type: ToastType = 'info') => {
-    const id = Math.random().toString(36).substr(2, 9)
+    const id = `toast-${++idCounterRef.current}-${Date.now()}`
     setToasts((prev) => [...prev, { id, message, type }])
   }
   

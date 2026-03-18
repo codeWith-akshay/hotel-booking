@@ -3,10 +3,12 @@
 // ==========================================
 // Simple, responsive footer for Member pages
 // Features: Copyright, social links, quick navigation
+// HYDRATION-SAFE: Uses useCurrentYear hook
 
 'use client'
 
 import Link from 'next/link'
+import { useCurrentYear } from '@/lib/hydration'
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -66,7 +68,8 @@ export default function Footer({
   links = DEFAULT_FOOTER_LINKS,
   className = '',
 }: FooterProps) {
-  const currentYear = new Date().getFullYear()
+  // HYDRATION-SAFE: Use hook instead of direct Date call
+  const currentYear = useCurrentYear()
 
   return (
     <footer className={`bg-gray-50 border-t border-gray-200 mt-auto ${className}`} role="contentinfo">

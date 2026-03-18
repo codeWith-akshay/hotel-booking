@@ -48,12 +48,22 @@ export default function SpecialDaysCalendar({ adminId, roomTypes = [] }: Special
   const loading = useAppSelector(selectSpecialDaysLoading)
   const error = useAppSelector(selectSpecialDaysError)
 
-  const [currentDate, setCurrentDate] = useState(new Date())
+  // HYDRATION-SAFE: Initialize with null, set actual date on client
+  const [currentDate, setCurrentDate] = useState<Date | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editingSpecialDay, setEditingSpecialDay] = useState<SpecialDay | null>(null)
+  
+  // Initialize date only on client side to avoid hydration mismatch
+  useEffect(() => {
+    if (!currentDate) {
+      setCurrentDate(new Date())
+    }
+  }, [currentDate])
 
   // Load special days for current month
   useEffect(() => {
+    if (!currentDate) return // Wait for client-side initialization
+    
     const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
     const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
 
@@ -67,15 +77,27 @@ export default function SpecialDaysCalendar({ adminId, roomTypes = [] }: Special
 
   // Navigation
   const goToPreviousMonth = () => {
+    if (!currentDate) return
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
   }
 
   const goToNextMonth = () => {
+    if (!currentDate) return
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
   }
 
   const goToToday = () => {
     setCurrentDate(new Date())
+  }
+
+  // Show loading while waiting for date initialization
+  if (!currentDate) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
+        <div className="h-64 bg-gray-100 rounded"></div>
+      </div>
+    )
   }
 
   // Handle date click

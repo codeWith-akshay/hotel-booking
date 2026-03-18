@@ -2,10 +2,11 @@
 // INVENTORY CARDS COMPONENT
 // ==========================================
 // Mobile-responsive card view for inventory
+// HYDRATION-SAFE: Uses useEffect for date initialization
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { updateInventory } from '@/actions/rooms/room-inventory.action'
@@ -135,11 +136,18 @@ export function InventoryCards({
   }
 
   /**
-   * Check if date is in the past
+   * Check if date is in the past (HYDRATION-SAFE)
    */
+  const [today, setToday] = useState<Date | null>(null)
+  
+  useEffect(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    setToday(now)
+  }, [])
+  
   const isPastDate = (date: Date) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    if (!today) return false // Default to not past during SSR
     return new Date(date) < today
   }
 

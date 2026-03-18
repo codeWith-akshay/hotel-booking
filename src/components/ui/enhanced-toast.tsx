@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { useEffect, useState, createContext, useContext, ReactNode } from "react";
+import React, { useEffect, useState, useRef, createContext, useContext, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CheckCircle2, XCircle, AlertCircle, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -74,9 +74,11 @@ export function ToastProvider({
   maxToasts?: number;
 }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // HYDRATION-SAFE: Use ref counter instead of Math.random()
+  const idCounterRef = useRef(0);
 
   const addToast = (toast: Omit<Toast, "id">) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = `toast-${++idCounterRef.current}-${Date.now()}`;
     const newToast = { ...toast, id };
 
     setToasts((prev) => {

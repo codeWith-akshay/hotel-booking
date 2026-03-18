@@ -3,11 +3,13 @@
 // ==========================================
 // Displays IRCA membership information with management options
 // Production-ready with Tailwind CSS and TypeScript
+// HYDRATION-SAFE: Uses useDaysFromNow hook
 
 'use client'
 
 import type { IRCAMembershipData } from '@/lib/validation/profile.schemas'
 import { formatExpiryDate, formatCurrency } from '@/lib/services/irca.service'
+import { useDaysFromNow } from '@/lib/hydration'
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -43,17 +45,8 @@ export function MembershipCard({
   onUnlink,
   isLoading = false,
 }: MembershipCardProps) {
-  // Calculate days until expiry
-  const getDaysUntilExpiry = () => {
-    if (!membership?.expiresAt) return null
-    const expiryDate = new Date(membership.expiresAt)
-    const today = new Date()
-    const diffTime = expiryDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
-
-  const daysUntilExpiry = getDaysUntilExpiry()
+  // HYDRATION-SAFE: Calculate days until expiry using hook
+  const daysUntilExpiry = useDaysFromNow(membership?.expiresAt)
 
   // No membership linked
   if (!membership) {

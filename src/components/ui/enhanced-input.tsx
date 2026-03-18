@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { forwardRef, useState, InputHTMLAttributes } from "react";
+import React, { forwardRef, useState, useId, InputHTMLAttributes } from "react";
 import { AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -90,8 +90,9 @@ export const EnhancedInput = forwardRef<HTMLInputElement, EnhancedInputProps>(
       (props.value as string)?.length || 0
     );
 
-    // Generate unique ID if not provided
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    // HYDRATION-SAFE: Use React's useId() hook instead of Math.random()
+    const reactId = useId();
+    const inputId = id || `input-${reactId}`;
     const errorId = `${inputId}-error`;
     const helperId = `${inputId}-helper`;
 

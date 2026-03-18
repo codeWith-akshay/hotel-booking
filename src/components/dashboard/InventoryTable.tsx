@@ -2,10 +2,11 @@
 // INVENTORY TABLE COMPONENT
 // ==========================================
 // Displays inventory data with inline editing
+// HYDRATION-SAFE: Uses useEffect for date initialization
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -68,6 +69,14 @@ export function InventoryTable({
 
   const [editingRow, setEditingRow] = useState<EditState | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  // HYDRATION-SAFE: Initialize today date on client only
+  const [today, setToday] = useState<Date | null>(null)
+  
+  useEffect(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    setToday(now)
+  }, [])
 
   // ==========================================
   // HANDLERS
@@ -150,11 +159,10 @@ export function InventoryTable({
   }
 
   /**
-   * Check if date is in the past
+   * Check if date is in the past (HYDRATION-SAFE)
    */
   const isPastDate = (date: Date) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    if (!today) return false // Default to not past during SSR
     return new Date(date) < today
   }
 
