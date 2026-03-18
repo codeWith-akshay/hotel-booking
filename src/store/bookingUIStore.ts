@@ -540,6 +540,29 @@ export const useBookingStore = create<BookingState>()(
           children: state.children,
           selectedRooms: state.selectedRooms,
         }),
+        onRehydrateStorage: () => (state) => {
+          // Convert date strings back to Date objects after rehydration from localStorage
+          if (state) {
+            if (state.startDate && typeof state.startDate === 'string') {
+              state.startDate = new Date(state.startDate)
+            }
+            if (state.endDate && typeof state.endDate === 'string') {
+              state.endDate = new Date(state.endDate)
+            }
+            // Recalculate nights based on restored dates
+            if (state.startDate && state.endDate) {
+              state.nights = Math.ceil(
+                (state.endDate.getTime() - state.startDate.getTime()) / (1000 * 60 * 60 * 24)
+              )
+            }
+            console.log('📦 Booking store rehydrated:', {
+              startDate: state.startDate,
+              endDate: state.endDate,
+              nights: state.nights,
+              selectedRooms: state.selectedRooms?.length || 0,
+            })
+          }
+        },
         migrate: (persistedState: any, version: number) => {
           // If version is less than current, clear the old data
           if (version < 3) {

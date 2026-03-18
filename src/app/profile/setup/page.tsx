@@ -132,6 +132,7 @@ export default function ProfileSetupPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important: Include cookies for authentication
         body: JSON.stringify(data),
       })
 

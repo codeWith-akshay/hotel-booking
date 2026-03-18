@@ -55,16 +55,19 @@ const mockNotifications = [
 // ==========================================
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, isAuthenticated, logout } = useAuthStore()
-  const [hydrated, setHydrated] = useState(false)
+  const { user, isAuthenticated, logout, _hasHydrated } = useAuthStore()
+  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => setHydrated(true), [])
+  useEffect(() => setMounted(true), [])
+
+  // Wait for both component mount AND store hydration before checking auth
+  const isReady = mounted && _hasHydrated
 
   useEffect(() => {
-    if (hydrated && (!isAuthenticated || !user)) {
+    if (isReady && (!isAuthenticated || !user)) {
       router.push('/login')
     }
-  }, [hydrated, isAuthenticated, user, router])
+  }, [isReady, isAuthenticated, user, router])
 
   const handleLogout = () => {
     logout()
@@ -72,7 +75,8 @@ export default function DashboardPage() {
     router.push('/login')
   }
 
-  if (!hydrated || !isAuthenticated || !user) return null
+  // Show nothing until store is hydrated and user is authenticated
+  if (!isReady || !isAuthenticated || !user) return null
 
   return (
     <ProfileCompletionGuard>

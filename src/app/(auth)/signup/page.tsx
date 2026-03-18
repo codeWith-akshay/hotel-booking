@@ -1,36 +1,38 @@
 'use client'
 
 /**
- * Login Page Component (Email/Password Authentication)
+ * Signup Page Component (Email/Password Authentication)
  * 
- * Provides email/password authentication with proper validation,
- * error handling, and role-based redirect after successful login.
+ * User registration with email, name, and password.
+ * Includes validation, error handling, and auto-login after signup.
  */
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuthStore } from '@/store/auth.store'
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter()
-  const { setUser, setTokens } = useAuthStore()
   
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
+    confirmPassword: '',
   })
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setErrors({})
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,38 +44,16 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (data.success) {
-        console.log('Login successful:', data.data)
+        console.log('Signup successful:', data.data)
         
-        // Update auth store with user data and token
-        setUser({
-          id: data.data.userId,
-          phone: '', // Optional: fetch from API if needed
-          name: data.data.name,
-          email: data.data.email,
-          role: data.data.role,
-          roleId: '', // Optional: fetch from API if needed
-          profileCompleted: true, // Optional: adjust based on API response
-        })
-        
-        setTokens(data.data.token)
-        
-        // Small delay to ensure store is updated
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
-        // Redirect based on role
-        if (data.data.role === 'SUPERADMIN') {
-          router.push('/superadmin/dashboard')
-        } else if (data.data.role === 'ADMIN') {
-          router.push('/admin/dashboard')
-        } else {
-          router.push('/dashboard')
-        }
+        // Redirect based on role (new users are MEMBER by default)
+       router.push('/dashboard')
       } else {
-        setError(data.message || 'Login failed. Please try again.')
+        setError(data.message || 'Signup failed. Please try again.')
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.')
-      console.error('Login error:', err)
+      console.error('Signup error:', err)
     } finally {
       setLoading(false)
     }
@@ -84,17 +64,21 @@ export default function LoginPage() {
       ...formData,
       [e.target.name]: e.target.value,
     })
+    // Clear field-specific error on change
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: '' })
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 px-4 py-12">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
               <svg
-                className="w-8 h-8 text-blue-600"
+                className="w-8 h-8 text-purple-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -103,12 +87,12 @@ export default function LoginPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
                 />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-            <p className="text-gray-600">Sign in to your account</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+            <p className="text-gray-600">Sign up to get started</p>
           </div>
 
           {/* Error Message */}
@@ -124,7 +108,26 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Name Field */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none"
+                placeholder="John Doe"
+                disabled={loading}
+              />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            </div>
+
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -137,10 +140,11 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none"
                 placeholder="you@example.com"
                 disabled={loading}
               />
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
 
             {/* Password Field */}
@@ -155,17 +159,40 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none"
                 placeholder="••••••••"
                 disabled={loading}
               />
+              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+              <p className="mt-2 text-xs text-gray-500">
+                Must be 8+ characters with uppercase, lowercase, number, and special character
+              </p>
+            </div>
+
+            {/* Confirm Password Field */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none"
+                placeholder="••••••••"
+                disabled={loading}
+              />
+              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:bg-purple-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -173,31 +200,22 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>Signing in...</span>
+                  <span>Creating account...</span>
                 </>
               ) : (
-                'Sign In'
+                'Create Account'
               )}
             </button>
           </form>
 
-          {/* Signup Link */}
+          {/* Login Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Don't have an account?{' '}
-              <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
-               Sign up
+              Already have an account?{' '}
+              <Link href="/login" className="text-purple-600 hover:text-purple-700 font-semibold transition-colors">
+                Sign in
               </Link>
             </p>
-          </div>
-
-          {/* Default Test Accounts Info */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs font-semibold text-gray-700 mb-2">🧪 Default Test Accounts:</p>
-            <div className="space-y-1 text-xs text-gray-600 font-mono">
-              <p><strong>Admin:</strong> admin@hotel.com / Admin@123456</p>
-              <p><strong>SuperAdmin:</strong> superadmin@hotel.com / SuperAdmin@123456</p>
-            </div>
           </div>
         </div>
       </div>

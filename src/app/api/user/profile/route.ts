@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyAccessToken } from '@/lib/auth/jwt.service'
-import { getUserProfile } from '@/actions/auth/verify-otp.action'
+import { prisma } from '@/lib/prisma'
 
 /**
  * GET /api/user/profile
@@ -49,7 +49,12 @@ export async function GET() {
     console.log('✅ Profile API: Token verified for user:', decoded.userId)
 
     // Fetch complete user profile from database
-    const userProfile = await getUserProfile(decoded.userId)
+    const userProfile = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: {
+        role: true,
+      },
+    })
 
     if (!userProfile) {
       return NextResponse.json(

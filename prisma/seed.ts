@@ -3,6 +3,13 @@ import * as bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
+/**
+ * Hash password using bcrypt
+ */
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10)
+}
+
 async function main() {
   console.log('🌱 Starting database seeding...\n')
 
@@ -70,7 +77,7 @@ async function main() {
     // Delete ALL existing users first
     // ==========================================
     console.log('�️  Deleting all existing users...')
-    await prisma.oTP.deleteMany({})
+
     await prisma.user.deleteMany({})
     console.log('✅ All existing users deleted\n')
 
@@ -85,19 +92,20 @@ async function main() {
     }
 
     // ==========================================
-    // Seed Admin User - +919022417920
+    // Seed Admin User
     // ==========================================
     console.log('👤 Creating Admin user...')
 
-    const adminPhone = '+919022417920'
-    const adminEmail = 'admin9022@gmail.com'
+    const adminEmail = 'admin@hotel.com'
+    const adminPassword = 'Admin@123456'
     const adminName = 'Hotel Admin'
+    const hashedAdminPassword = await hashPassword(adminPassword)
 
     const adminUser = await prisma.user.create({
       data: {
-        phone: adminPhone,
-        name: adminName,
         email: adminEmail,
+        password: hashedAdminPassword,
+        name: adminName,
         roleId: adminRole.id,
         profileCompleted: true,
       },
@@ -105,25 +113,26 @@ async function main() {
 
     console.log(`✅ Admin user created:`)
     console.log(`   📧 Email: ${adminUser.email}`)
-    console.log(`   📱 Phone: ${adminUser.phone}`)
+    console.log(`   🔑 Password: ${adminPassword}`)
     console.log(`   👤 Name: ${adminUser.name}`)
     console.log(`   🆔 ID: ${adminUser.id}`)
     console.log(`   🔑 Role: ADMIN`)
 
     // ==========================================
-    // Seed Super Admin User - +919307547129
+    // Seed Super Admin User
     // ==========================================
     console.log('\n👑 Creating Super Admin user...')
 
-    const superAdminPhone = '+919307547129'
-    const superAdminEmail = 'superadmin9307@gmail.com'
+    const superAdminEmail = 'superadmin@hotel.com'
+    const superAdminPassword = 'SuperAdmin@123456'
     const superAdminName = 'Hotel Super Admin'
+    const hashedSuperAdminPassword = await hashPassword(superAdminPassword)
 
     const superAdminUser = await prisma.user.create({
       data: {
-        phone: superAdminPhone,
-        name: superAdminName,
         email: superAdminEmail,
+        password: hashedSuperAdminPassword,
+        name: superAdminName,
         roleId: superAdminRole.id,
         profileCompleted: true,
       },
@@ -131,7 +140,7 @@ async function main() {
 
     console.log(`✅ Super Admin user created:`)
     console.log(`   📧 Email: ${superAdminUser.email}`)
-    console.log(`   📱 Phone: ${superAdminUser.phone}`)
+    console.log(`   🔑 Password: ${superAdminPassword}`)
     console.log(`   👤 Name: ${superAdminUser.name}`)
     console.log(`   🆔 ID: ${superAdminUser.id}`)
     console.log(`   🔑 Role: SUPERADMIN`)
@@ -407,8 +416,8 @@ async function main() {
     console.log('\n📊 Summary:')
     console.log(`   • Roles seeded: ${createdRoles.length}`)
     console.log(`   • Admin users created: 2`)
-    console.log(`     - Admin: +919022417920`)
-    console.log(`     - Super Admin: +919307547129`)
+    console.log(`     - Admin: ${adminEmail} | Password: ${adminPassword}`)
+    console.log(`     - Super Admin: ${superAdminEmail} | Password: ${superAdminPassword}`)
     console.log(`   • Room types seeded: ${createdRoomTypes.length}`)
     console.log(`   • Inventory records created: ${totalInventoryRecords}`)
     console.log(`   • Booking rules created: ${createdBookingRules}`)

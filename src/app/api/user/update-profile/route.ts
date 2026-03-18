@@ -37,7 +37,14 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies()
     const authCookie = cookieStore.get('auth-session')
     
+    console.log('🍪 UPDATE PROFILE - Cookie check:', {
+      hasCookie: !!authCookie,
+      hasValue: !!authCookie?.value,
+      cookieLength: authCookie?.value?.length,
+    })
+    
     if (!authCookie || !authCookie.value) {
+      console.log('❌ UPDATE PROFILE - No auth cookie found')
       return NextResponse.json(
         {
           success: false,
@@ -51,7 +58,13 @@ export async function POST(request: NextRequest) {
     // Verify JWT token
     const decoded = verifyAccessToken(authCookie.value)
     
+    console.log('🔐 UPDATE PROFILE - Token verification:', {
+      decoded: !!decoded,
+      hasUserId: !!decoded?.userId,
+    })
+    
     if (!decoded || !decoded.userId) {
+      console.log('❌ UPDATE PROFILE - Invalid token')
       return NextResponse.json(
         {
           success: false,
@@ -63,6 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decoded.userId
+    console.log('✅ UPDATE PROFILE - Authenticated user:', userId)
 
     // ==========================================
     // 2. VERIFY USER EXISTS

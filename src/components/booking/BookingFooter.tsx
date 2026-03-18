@@ -126,23 +126,26 @@ export function BookingFooter() {
 
         {/* ==========================================
             RIGHT SIDE - Continue/Confirm Button
+            (Hidden on SUMMARY step - BookingSummaryStep has its own confirm form)
             ========================================== */}
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleNext}
-            disabled={nextButtonConfig.disabled}
-            variant={nextButtonConfig.variant || 'default'}
-            size="lg"
-            className="flex items-center gap-2 min-w-[180px]"
-          >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            ) : (
-              <NextIcon className="h-4 w-4" />
-            )}
-            {nextButtonConfig.text}
-          </Button>
-        </div>
+        {currentStep !== BookingStep.SUMMARY && (
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleNext}
+              disabled={nextButtonConfig.disabled}
+              variant={nextButtonConfig.variant || 'default'}
+              size="lg"
+              className="flex items-center gap-2 min-w-[180px]"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <NextIcon className="h-4 w-4" />
+              )}
+              {nextButtonConfig.text}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ==========================================

@@ -5,15 +5,15 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Calendar, Users, Bed, CreditCard, CheckCircle, AlertTriangle, MapPin, Phone, Mail } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { PaymentButton } from '@/components/booking/PaymentButton'
 import { useBookingStore } from '@/store/bookingUIStore'
+import { useAuthStore } from '@/store/auth.store'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 
 export function BookingSummaryStep() {
   const { getBookingSummary } = useBookingStore()
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore()
   const summary = getBookingSummary()
   
   // Form state for booking confirmation
@@ -34,6 +35,11 @@ export function BookingSummaryStep() {
     specialRequests: '',
   })
   
+  // Check if we have valid booking data
+  const hasValidBookingData = summary.dateRange.startDate && 
+    summary.dateRange.endDate && 
+    summary.roomSelection.length > 0
+  
   const [agreements, setAgreements] = useState({
     terms: false,
     privacy: false,
@@ -43,6 +49,24 @@ export function BookingSummaryStep() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [bookingId, setBookingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Pre-fill contact form with logged-in user's data
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated && user) {
+      // Parse name into first/last if available
+      const nameParts = (user.name || '').trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+      
+      setContactInfo(prev => ({
+        ...prev,
+        firstName: prev.firstName || firstName,
+        lastName: prev.lastName || lastName,
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || '',
+      }))
+    }
+  }, [_hasHydrated, isAuthenticated, user])
 
   // ==========================================
   // FORM HANDLERS
@@ -58,6 +82,7 @@ export function BookingSummaryStep() {
 
   const isFormValid = () => {
     return (
+      isAuthenticated &&
       contactInfo.firstName.trim() &&
       contactInfo.lastName.trim() &&
       contactInfo.email.trim() &&
@@ -68,7 +93,7 @@ export function BookingSummaryStep() {
   }
 
   const handleConfirmBooking = async () => {
-    if (!isFormValid()) return
+    if (!isFormValid() || !isAuthenticated) return
     
     setIsSubmitting(true)
     setError(null)
@@ -82,10 +107,23 @@ export function BookingSummaryStep() {
         pricing: summary.pricing,
       })
 
+      // Ensure dates are proper Date objects before sending
+      const startDate = summary.dateRange.startDate instanceof Date 
+        ? summary.dateRange.startDate 
+        : new Date(summary.dateRange.startDate)
+      const endDate = summary.dateRange.endDate instanceof Date 
+        ? summary.dateRange.endDate 
+        : new Date(summary.dateRange.endDate)
+
+      // Validate room selection
+      if (!summary.roomSelection || summary.roomSelection.length === 0 || !summary.roomSelection[0]?.roomTypeId) {
+        throw new Error('No room selected. Please go back and select a room.')
+      }
+
       const bookingData = {
-        startDate: summary.dateRange.startDate,
-        endDate: summary.dateRange.endDate,
-        roomTypeId: summary.roomSelection[0]?.roomTypeId, // Using first room (can be modified for multiple rooms)
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        roomTypeId: summary.roomSelection[0].roomTypeId, // Using first room (can be modified for multiple rooms)
         numberOfRooms: summary.roomSelection.reduce((acc: number, room) => acc + room.quantity, 0),
         adults: summary.guestInfo.adults,
         children: summary.guestInfo.children,
@@ -158,26 +196,55 @@ export function BookingSummaryStep() {
     }
   }
 
+  // Show error if booking data is missing
+  if (!hasValidBookingData) {
+    return (
+      <div className="space-y-8">
+        <Card className="p-6 bg-red-50 border-red-200">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-red-900 mb-1">Booking Data Missing</h3>
+              <p className="text-sm text-red-700 mb-3">
+                Your booking session may have expired or some required selections are missing.
+                Please go back and complete all steps.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.href = '/booking'}
+              >
+                Start New Booking
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       
       {/* ==========================================
-          AUTHENTICATION WARNING
+          AUTHENTICATION STATUS - Only show if not logged in
           ========================================== */}
-      <Card className="p-4 bg-blue-50 border-blue-200">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-blue-900 mb-1">Login Required</h3>
-            <p className="text-sm text-blue-700">
-              You must be logged in to complete your booking. If you're not logged in, you'll be redirected to the login page.
-            </p>
-            <a href="/login?redirect=/booking" className="text-sm text-blue-600 hover:text-blue-800 underline mt-2 inline-block">
-              Login Now →
-            </a>
+      {_hasHydrated && !isAuthenticated && (
+        <Card className="p-4 bg-amber-50 border-amber-200">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-amber-900 mb-1">Login Required</h3>
+              <p className="text-sm text-amber-700">
+                You must be logged in to complete your booking. Please login to continue.
+              </p>
+              <a href="/login?redirect=/booking" className="text-sm text-amber-600 hover:text-amber-800 underline mt-2 inline-block">
+                Login Now →
+              </a>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
       
       {/* ==========================================
           STEP HEADER
@@ -209,13 +276,13 @@ export function BookingSummaryStep() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Check-in:</span>
                 <span className="font-medium">
-                  {format(summary.dateRange.startDate, 'EEEE, MMMM d, yyyy')}
+                  {format(new Date(summary.dateRange.startDate), 'EEEE, MMMM d, yyyy')}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Check-out:</span>
                 <span className="font-medium">
-                  {format(summary.dateRange.endDate, 'EEEE, MMMM d, yyyy')}
+                  {format(new Date(summary.dateRange.endDate), 'EEEE, MMMM d, yyyy')}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -488,7 +555,10 @@ export function BookingSummaryStep() {
                 {!isFormValid() && (
                   <div className="mt-3 flex items-center gap-2 text-sm text-amber-700">
                     <AlertTriangle className="h-4 w-4" />
-                    Please complete all required fields and accept the terms
+                    {!isAuthenticated 
+                      ? 'Please login to complete your booking'
+                      : 'Please complete all required fields and accept the terms'
+                    }
                   </div>
                 )}
                 
@@ -513,7 +583,7 @@ export function BookingSummaryStep() {
                 )}
               </>
             ) : (
-              // Step 2: Process payment
+              // Step 2: Booking confirmed - redirect to dashboard
               <>
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2 text-green-700">
@@ -525,17 +595,19 @@ export function BookingSummaryStep() {
                   </p>
                 </div>
                 
-                <PaymentButton
-                  bookingId={bookingId}
-                  amount={Math.round(summary.pricing.totalPrice * 100)} // Convert to cents
-                  currency="USD"
-                  label={`Pay $${summary.pricing.totalPrice.toLocaleString()}`}
+                <Button
+                  onClick={() => window.location.href = '/dashboard'}
                   size="lg"
-                  onError={(error) => setError(error)}
-                />
+                  className="w-full"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    Confirm Booking & Go to Dashboard
+                  </div>
+                </Button>
                 
                 <p className="text-xs text-gray-600 text-center mt-3">
-                  You will be redirected to secure payment gateway
+                  Your booking has been saved. View it in your dashboard.
                 </p>
               </>
             )}

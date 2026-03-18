@@ -12,7 +12,7 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.71.1(react@19.2.0))
       '@prisma/client':
-        specifier: ^6.17.1
+        specifier: ^6.19.2
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.16
@@ -65,9 +65,6 @@ importers:
       pdfkit:
         specifier: ^0.17.2
         version: 0.17.2
-      prisma:
-        specifier: ^6.17.1
-        version: 6.19.2(typescript@5.9.3)
       react:
         specifier: 19.2.0
         version: 19.2.0
@@ -153,6 +150,9 @@ importers:
       prettier:
         specifier: ^3.4.2
         version: 3.8.1
+      prisma:
+        specifier: ^6.19.2
+        version: 6.19.2(typescript@5.9.3)
       rimraf:
         specifier: ^6.0.1
         version: 6.1.2

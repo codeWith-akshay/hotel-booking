@@ -142,28 +142,37 @@ export async function POST(request: NextRequest) {
     const basePrice = roomType.pricePerNight * numberOfRooms * nights
     const totalPrice = basePrice // Add any additional fees/taxes here
 
-    // Log guest information for tracking (since schema doesn't support these fields yet)
-    console.log('📝 Booking details:', {
-      user: user.userId,
-      contact: { firstName, lastName, email, phone },
-      guests: { adults, children, guestType },
+    // Create booking with all guest information
+    const guestFullName = `${firstName} ${lastName}`.trim()
+    
+    console.log('📝 Creating booking with data:', {
+      userId: user.userId,
+      roomTypeId,
+      startDate: checkIn,
+      endDate: checkOut,
+      roomsBooked: numberOfRooms,
+      guestName: guestFullName,
+      guestEmail: email,
+      guestPhone: phone,
+      numberOfGuests: (adults || 1) + (children || 0),
       specialRequests,
+      totalPrice,
     })
 
-    // Create booking with available fields
-    // Note: Contact info (firstName, lastName, email, phone) and guest details 
-    // are stored in the User model, not in Booking
     const booking = await prisma.booking.create({
       data: {
         userId: user.userId,
         roomTypeId,
         startDate: checkIn,
         endDate: checkOut,
-        roomsBooked: numberOfRooms, // Using roomsBooked field from schema
+        roomsBooked: numberOfRooms,
+        guestName: guestFullName,
+        guestEmail: email || null,
+        guestPhone: phone || user.phone,
+        numberOfGuests: (adults || 1) + (children || 0),
+        specialRequests: specialRequests || null,
         status: 'PROVISIONAL', // Initial status before payment
         totalPrice,
-        // Note: specialRequests, adults, children, guestType are not in the Booking schema
-        // They would need to be added to the schema or stored in a separate table
       },
     })
 

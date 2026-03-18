@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") // Prisma 6 syntax - correct for our version
 }
 
 // Enums for Role Names
@@ -68,9 +68,10 @@ enum VipStatus {
 // User Model - Core authentication and user data
 model User {
   id                String     @id @default(cuid())
-  phone             String     @unique
+  email             String     @unique
+  password          String
   name              String
-  email             String?    @unique
+  phone             String?
   roleId            String
   ircaMembershipId  String?    @unique
   
@@ -78,7 +79,7 @@ model User {
   address           String?
   vipStatus         VipStatus  @default(NONE)
   profilePicture    String?
-  profileCompleted  Boolean    @default(false)
+  profileCompleted  Boolean    @default(true)
   termsAccepted     Boolean    @default(false)
   
   createdAt         DateTime   @default(now())
@@ -86,7 +87,6 @@ model User {
 
   // Relations
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  otps OTP[]
   bookings Booking[]
   waitlistEntries Waitlist[]
   payments Payment[]
@@ -96,7 +96,6 @@ model User {
   notifications Notification[]
 
   // Indexes for performance
-  @@index([phone])
   @@index([email])
   @@index([roleId])
   @@index([ircaMembershipId])
@@ -117,23 +116,6 @@ model Role {
   // Indexes
   @@index([name])
   @@map("roles")
-}
-
-// OTP Model - One-Time Password for authentication
-model OTP {
-  id        String   @id @default(cuid())
-  userId    String
-  otpHash   String   // Hashed OTP for security
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Indexes for performance
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("otps")
 }
 
 // ==========================================
@@ -248,6 +230,13 @@ model Booking {
   
   /// Number of rooms booked (for group booking support)
   roomsBooked Int           @default(1)
+  
+  /// Guest information
+  guestName    String        @default("Guest")
+  guestEmail   String?
+  guestPhone   String        @default("")
+  numberOfGuests Int         @default(1)
+  specialRequests String?
   
   /// Deposit amount required for group bookings (in cents)
   depositAmount Int?
