@@ -6,13 +6,13 @@
 // ✔ Protects ONLY API routes
 // ✔ Silent in production
 // ✔ Clean RBAC
-// ✔ Edge-safe
+// ✔ Edge-safe (uses jose instead of jsonwebtoken)
 // ✔ No noisy logs
 // ==========================================
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 import type { RoleName } from '@prisma/client'
 import type {
   MiddlewareContext,
@@ -26,6 +26,9 @@ import type {
 
 const JWT_ACCESS_SECRET =
   process.env.JWT_ACCESS_SECRET || 'dev-secret'
+
+// Create secret for jose (must be Uint8Array)
+const getSecret = () => new TextEncoder().encode(JWT_ACCESS_SECRET)
 
 const DEBUG_MODE = process.env.NODE_ENV === 'development'
 
@@ -84,9 +87,10 @@ function extractToken(request: NextRequest): string | null {
   return request.cookies.get('auth-session')?.value ?? null
 }
 
-function verifyToken(token: string): MiddlewareContext | null {
+async function verifyToken(token: string): Promise<MiddlewareContext | null> {
   try {
-    return jwt.verify(token, JWT_ACCESS_SECRET) as MiddlewareContext
+    const { payload } = await jwtVerify(token, getSecret())
+    return payload as unknown as MiddlewareContext
   } catch {
     return null
   }
@@ -102,7 +106,7 @@ function createErrorResponse(
 // MIDDLEWARE
 // ==========================================
 
-export default function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 🔒 Middleware ONLY for API routes
@@ -133,7 +137,7 @@ export default function middleware(request: NextRequest) {
     })
   }
 
-  const user = verifyToken(token)
+  const user = await verifyToken(token)
 
   if (!user) {
     return createErrorResponse({
@@ -182,7 +186,7 @@ export default function middleware(request: NextRequest) {
 function addSecurityHeaders(response: NextResponse) {
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline';"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; font-src 'self' data: https:;"
   )
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
