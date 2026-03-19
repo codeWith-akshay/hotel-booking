@@ -4,7 +4,7 @@
 // Use these selectors to subscribe only to specific state slices
 // This prevents re-renders when unrelated state changes
 
-import { shallow } from 'zustand/shallow'
+import { useShallow } from 'zustand/shallow'
 import { useAuthStore, type AuthState, type User } from './auth.store'
 import { useBookingStore, type BookingStep, type RoomSelection, type PriceBreakdown } from './bookingUIStore'
 
@@ -50,12 +50,11 @@ export const useAuthLoading = () =>
  */
 export const useAuthUser = () =>
   useAuthStore(
-    (state) => ({
+    useShallow((state) => ({
       user: state.user,
       isAuthenticated: state.isAuthenticated,
       hasHydrated: state._hasHydrated,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -64,13 +63,12 @@ export const useAuthUser = () =>
  */
 export const useAuthActions = () =>
   useAuthStore(
-    (state) => ({
+    useShallow((state) => ({
       setUser: state.setUser,
       setTokens: state.setTokens,
       logout: state.logout,
       setLoading: state.setLoading,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -94,12 +92,11 @@ export const useCurrentStep = () =>
  */
 export const useBookingDates = () =>
   useBookingStore(
-    (state) => ({
+    useShallow((state) => ({
       startDate: state.startDate,
       endDate: state.endDate,
       nights: state.nights,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -107,13 +104,12 @@ export const useBookingDates = () =>
  */
 export const useGuestInfo = () =>
   useBookingStore(
-    (state) => ({
+    useShallow((state) => ({
       guestType: state.guestType,
       adults: state.adults,
       children: state.children,
       totalGuests: state.totalGuests,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -133,11 +129,10 @@ export const useAvailableRoomTypes = () =>
  */
 export const useBookingPricing = () =>
   useBookingStore(
-    (state) => ({
+    useShallow((state) => ({
       priceBreakdown: state.priceBreakdown,
       totalPrice: state.totalPrice,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -145,11 +140,10 @@ export const useBookingPricing = () =>
  */
 export const useBookingStatus = () =>
   useBookingStore(
-    (state) => ({
+    useShallow((state) => ({
       isLoading: state.isLoading,
       error: state.error,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -157,14 +151,13 @@ export const useBookingStatus = () =>
  */
 export const useBookingNavigation = () =>
   useBookingStore(
-    (state) => ({
+    useShallow((state) => ({
       nextStep: state.nextStep,
       previousStep: state.previousStep,
       goToStep: state.goToStep,
       currentStep: state.currentStep,
       isStepValid: state.isStepValid,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -172,7 +165,7 @@ export const useBookingNavigation = () =>
  */
 export const useBookingActions = () =>
   useBookingStore(
-    (state) => ({
+    useShallow((state) => ({
       setDates: state.setDates,
       setGuestInfo: state.setGuestInfo,
       setAvailableRoomTypes: state.setAvailableRoomTypes,
@@ -182,8 +175,7 @@ export const useBookingActions = () =>
       resetBooking: state.resetBooking,
       setLoading: state.setLoading,
       setError: state.setError,
-    }),
-    shallow
+    }))
   )
 
 /**
@@ -191,7 +183,7 @@ export const useBookingActions = () =>
  */
 export const useBookingSummary = () =>
   useBookingStore(
-    (state) => ({
+    useShallow((state) => ({
       startDate: state.startDate,
       endDate: state.endDate,
       nights: state.nights,
@@ -199,8 +191,7 @@ export const useBookingSummary = () =>
       totalRooms: state.totalRooms,
       totalPrice: state.totalPrice,
       selectedRooms: state.selectedRooms,
-    }),
-    shallow
+    }))
   )
 
 // ==========================================
